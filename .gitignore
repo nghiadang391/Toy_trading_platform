@@ -1,0 +1,7 @@
+implementation_plan.md
+
+# IDE / Agent Configs
+.agents/
+.claude/
+.windsurf/
+generate_deck.sh

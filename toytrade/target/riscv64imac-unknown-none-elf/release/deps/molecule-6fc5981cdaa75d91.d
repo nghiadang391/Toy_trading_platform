@@ -1,0 +1,11 @@
+/Users/nghiadang/CKB/Toy_trading_platform/toytrade/target/riscv64imac-unknown-none-elf/release/deps/molecule-6fc5981cdaa75d91.d: /Users/nghiadang/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/molecule-0.8.0/src/lib.rs /Users/nghiadang/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/molecule-0.8.0/src/error.rs /Users/nghiadang/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/molecule-0.8.0/src/prelude.rs /Users/nghiadang/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/molecule-0.8.0/src/primitive.rs /Users/nghiadang/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/molecule-0.8.0/src/io.rs
+
+/Users/nghiadang/CKB/Toy_trading_platform/toytrade/target/riscv64imac-unknown-none-elf/release/deps/libmolecule-6fc5981cdaa75d91.rlib: /Users/nghiadang/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/molecule-0.8.0/src/lib.rs /Users/nghiadang/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/molecule-0.8.0/src/error.rs /Users/nghiadang/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/molecule-0.8.0/src/prelude.rs /Users/nghiadang/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/molecule-0.8.0/src/primitive.rs /Users/nghiadang/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/molecule-0.8.0/src/io.rs
+
+/Users/nghiadang/CKB/Toy_trading_platform/toytrade/target/riscv64imac-unknown-none-elf/release/deps/libmolecule-6fc5981cdaa75d91.rmeta: /Users/nghiadang/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/molecule-0.8.0/src/lib.rs /Users/nghiadang/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/molecule-0.8.0/src/error.rs /Users/nghiadang/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/molecule-0.8.0/src/prelude.rs /Users/nghiadang/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/molecule-0.8.0/src/primitive.rs /Users/nghiadang/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/molecule-0.8.0/src/io.rs
+
+/Users/nghiadang/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/molecule-0.8.0/src/lib.rs:
+/Users/nghiadang/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/molecule-0.8.0/src/error.rs:
+/Users/nghiadang/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/molecule-0.8.0/src/prelude.rs:
+/Users/nghiadang/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/molecule-0.8.0/src/primitive.rs:
+/Users/nghiadang/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/molecule-0.8.0/src/io.rs:

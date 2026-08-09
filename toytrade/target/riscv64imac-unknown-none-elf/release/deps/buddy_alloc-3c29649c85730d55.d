@@ -1,0 +1,10 @@
+/Users/nghiadang/CKB/Toy_trading_platform/toytrade/target/riscv64imac-unknown-none-elf/release/deps/buddy_alloc-3c29649c85730d55.d: /Users/nghiadang/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/buddy-alloc-0.6.0/src/lib.rs /Users/nghiadang/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/buddy-alloc-0.6.0/src/buddy_alloc.rs /Users/nghiadang/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/buddy-alloc-0.6.0/src/fast_alloc.rs /Users/nghiadang/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/buddy-alloc-0.6.0/src/non_threadsafe_alloc.rs
+
+/Users/nghiadang/CKB/Toy_trading_platform/toytrade/target/riscv64imac-unknown-none-elf/release/deps/libbuddy_alloc-3c29649c85730d55.rlib: /Users/nghiadang/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/buddy-alloc-0.6.0/src/lib.rs /Users/nghiadang/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/buddy-alloc-0.6.0/src/buddy_alloc.rs /Users/nghiadang/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/buddy-alloc-0.6.0/src/fast_alloc.rs /Users/nghiadang/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/buddy-alloc-0.6.0/src/non_threadsafe_alloc.rs
+
+/Users/nghiadang/CKB/Toy_trading_platform/toytrade/target/riscv64imac-unknown-none-elf/release/deps/libbuddy_alloc-3c29649c85730d55.rmeta: /Users/nghiadang/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/buddy-alloc-0.6.0/src/lib.rs /Users/nghiadang/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/buddy-alloc-0.6.0/src/buddy_alloc.rs /Users/nghiadang/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/buddy-alloc-0.6.0/src/fast_alloc.rs /Users/nghiadang/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/buddy-alloc-0.6.0/src/non_threadsafe_alloc.rs
+
+/Users/nghiadang/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/buddy-alloc-0.6.0/src/lib.rs:
+/Users/nghiadang/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/buddy-alloc-0.6.0/src/buddy_alloc.rs:
+/Users/nghiadang/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/buddy-alloc-0.6.0/src/fast_alloc.rs:
+/Users/nghiadang/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/buddy-alloc-0.6.0/src/non_threadsafe_alloc.rs:
