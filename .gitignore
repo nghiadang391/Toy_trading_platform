@@ -1,7 +1,32 @@
-implementation_plan.md
+# Dependencies
+node_modules/
+/target/
+/contracts/*/target/
 
-# IDE / Agent Configs
+# Next.js Build Outputs
+.next/
+out/
+next-env.d.ts
+
+# Secrets & Local Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDEs & Editor Configurations
 .agents/
 .claude/
 .windsurf/
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Project-specific ignores
+implementation_plan.md
 generate_deck.sh

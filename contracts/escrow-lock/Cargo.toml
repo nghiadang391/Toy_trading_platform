@@ -1,0 +1,11 @@
+[package]
+name = "escrow-lock"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ckb-std = { version = "0.17.0", features = ["dummy-atomic"] }
+
+[features]
+library = []
+native-simulator = ["library", "ckb-std/native-simulator"]
