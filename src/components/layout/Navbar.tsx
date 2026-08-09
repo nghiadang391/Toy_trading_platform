@@ -11,11 +11,11 @@ export default function Navbar() {
     setConnecting(true);
     try {
       // Import JoyID dynamically for SSR safety
-      const { init, connect } = await import("@joyid/ckb");
-      init({
+      const { initConfig, connect } = await import("@joyid/ckb");
+      initConfig({
         name: "ToyTrade",
         logo: "https://toytrade.vercel.app/logo.png",
-        network: "testnet",
+        joyidAppURL: "https://testnet.joyid.dev", // Uses CKB testnet
       });
 
       const res = await connect();
