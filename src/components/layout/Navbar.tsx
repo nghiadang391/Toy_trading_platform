@@ -10,18 +10,16 @@ export default function Navbar() {
   async function connectWallet() {
     setConnecting(true);
     try {
-      // Import JoyID dynamically for SSR safety
       const { initConfig, connect } = await import("@joyid/ckb");
       initConfig({
         name: "ToyTrade",
         logo: "https://toytrade.vercel.app/logo.png",
-        joyidAppURL: "https://testnet.joyid.dev", // Uses CKB testnet
+        joyidAppURL: "https://testnet.joyid.dev",
       });
 
       const res = await connect();
       if (res && res.address) {
         setWalletAddress(res.address);
-        // Sync user backend registry profile
         await fetch("/api/users", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -40,94 +38,39 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="navbar">
-      <div className="nav-container">
-        <Link href="/" className="nav-logo">
-          Toy<span>Trade</span>
+    <nav className="sticky top-0 z-50 w-full border-b border-white/10 bg-black/80 backdrop-blur-md font-sans">
+      <div className="mx-auto max-w-7xl px-6 py-4 flex items-center justify-between">
+        <Link href="/" className="text-xl font-extrabold text-white tracking-tight">
+          Toy<span className="text-[#00ff87]">Trade</span>
         </Link>
-        <div className="nav-links">
-          <Link href="/listings" className="nav-link">Browse Toys</Link>
-          <Link href="/listings/create" className="nav-link">Sell a Toy</Link>
-        </div>
-        <div className="nav-auth">
-          {walletAddress ? (
-            <span className="wallet-badge">
-              🔑 {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
-            </span>
-          ) : (
-            <button className="connect-btn" onClick={connectWallet} disabled={connecting}>
-              {connecting ? "Connecting..." : "Fingerprint Connect"}
-            </button>
-          )}
+        
+        <div className="flex items-center gap-8">
+          <div className="flex gap-6">
+            <Link href="/listings" className="text-sm font-semibold text-white/70 hover:text-white transition-colors">
+              Browse Toys
+            </Link>
+            <Link href="/listings/create" className="text-sm font-semibold text-white/70 hover:text-white transition-colors">
+              Sell a Toy
+            </Link>
+          </div>
+          
+          <div>
+            {walletAddress ? (
+              <span className="inline-flex items-center rounded-lg border border-white/15 bg-white/5 px-4 py-2 text-xs font-medium text-white">
+                🔑 {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+              </span>
+            ) : (
+              <button 
+                className="rounded-lg bg-gradient-to-r from-[#00ff87] to-[#60efff] px-5 py-2 text-sm font-bold text-black hover:opacity-90 active:scale-95 transition-all disabled:opacity-50"
+                onClick={connectWallet} 
+                disabled={connecting}
+              >
+                {connecting ? "Connecting..." : "Fingerprint Connect"}
+              </button>
+            )}
+          </div>
         </div>
       </div>
-
-      <style jsx>{`
-        .navbar {
-          background: rgba(10, 10, 10, 0.8);
-          backdrop-filter: blur(12px);
-          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-          position: sticky;
-          top: 0;
-          z-index: 100;
-          font-family: Inter, sans-serif;
-        }
-        .nav-container {
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 16px 24px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-        .nav-logo {
-          font-size: 1.5rem;
-          font-weight: 800;
-          color: #ffffff;
-          text-decoration: none;
-          letter-spacing: -0.02em;
-        }
-        .nav-logo span {
-          color: #00ff87;
-        }
-        .nav-links {
-          display: flex;
-          gap: 24px;
-        }
-        .nav-link {
-          color: rgba(255, 255, 255, 0.7);
-          text-decoration: none;
-          font-weight: 500;
-          font-size: 0.95rem;
-          transition: color 0.2s;
-        }
-        .nav-link:hover {
-          color: #ffffff;
-        }
-        .connect-btn {
-          background: linear-gradient(135deg, #00ff87 0%, #60efff 100%);
-          border: none;
-          color: #0a0a0a;
-          padding: 10px 20px;
-          font-weight: 600;
-          border-radius: 8px;
-          cursor: pointer;
-          transition: transform 0.2s, opacity 0.2s;
-        }
-        .connect-btn:hover {
-          transform: translateY(-1px);
-          opacity: 0.95;
-        }
-        .wallet-badge {
-          background: rgba(255, 255, 255, 0.08);
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          color: #ffffff;
-          padding: 8px 16px;
-          border-radius: 8px;
-          font-size: 0.85rem;
-          font-weight: 500;
-        }
-      `}</style>
     </nav>
   );
 }
