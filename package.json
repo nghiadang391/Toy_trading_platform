@@ -3,10 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "npm run clean-port && next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "postinstall": "prisma generate",
+    "clean-port": "kill -9 $(lsof -t -i:3000) 2>/dev/null || true"
   },
   "dependencies": {
     "@joyid/ckb": "^1.1.4",
