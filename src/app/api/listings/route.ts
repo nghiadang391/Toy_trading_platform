@@ -53,6 +53,7 @@ export async function POST(request: Request) {
       imageUrls,
       tradeMethod,
       shippingRegion,
+      location,
       sellerId,
     } = body;
 
@@ -76,6 +77,7 @@ export async function POST(request: Request) {
         imageUrls: imageUrls || [],
         tradeMethod: tradeMethod as TradeMethod,
         shippingRegion: shippingRegion as Region,
+        location: location || null,
         sellerId,
         status: "ACTIVE",
       },

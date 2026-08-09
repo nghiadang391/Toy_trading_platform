@@ -37,6 +37,7 @@ model Listing {
   status          ListingStatus  @default(ACTIVE)
   tradeMethod     TradeMethod                 // MEETUP, SHIPPING, BOTH
   shippingRegion  Region?
+  location        String?                     // Detail address or meetup location (e.g. "Hammersmith, London" or "District 1, HCMC")
   sellerId        String
   seller          User           @relation(fields: [sellerId], references: [id])
   createdAt       DateTime       @default(now())

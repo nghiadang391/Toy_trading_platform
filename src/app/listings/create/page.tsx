@@ -16,6 +16,7 @@ export default function CreateListingPage() {
   const [condition, setCondition] = useState("NEW");
   const [tradeMethod, setTradeMethod] = useState("MEETUP");
   const [shippingRegion, setShippingRegion] = useState("UK");
+  const [location, setLocation] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -49,6 +50,7 @@ export default function CreateListingPage() {
           imageUrls: [],
           tradeMethod,
           shippingRegion,
+          location,
           sellerId: user.id,
         }),
       });
@@ -150,6 +152,17 @@ export default function CreateListingPage() {
               <option value="VN">Vietnam</option>
             </select>
           </div>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="location">Meetup Location / Detail Address</label>
+          <input
+            type="text"
+            id="location"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            placeholder="e.g. Hammersmith, London or District 1, HCMC"
+          />
         </div>
 
         <button type="submit" className="submit-btn" disabled={submitting}>

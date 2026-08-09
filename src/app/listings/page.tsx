@@ -16,6 +16,7 @@ interface Listing {
   imageUrls: string[];
   tradeMethod: string;
   shippingRegion: string;
+  location: string | null;
   status: string;
   seller: {
     displayName: string;
@@ -77,6 +78,11 @@ export default function ListingsPage() {
                   <span>Method: <strong>{item.tradeMethod}</strong></span>
                   <span>Region: <strong>{item.shippingRegion || "N/A"}</strong></span>
                 </div>
+                {item.location && (
+                  <div className="location-row">
+                    📍 <span>{item.location}</span>
+                  </div>
+                )}
                 
                 {/* Embedded 3-Price Transparency component */}
                 <PriceDisplay 
@@ -210,6 +216,14 @@ export default function ListingsPage() {
           font-size: 0.8rem;
           color: rgba(255, 255, 255, 0.4);
           margin-top: 4px;
+        }
+        .location-row {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 0.8rem;
+          color: #60efff;
+          margin-top: 2px;
         }
         .footer-row {
           display: flex;
