@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import PriceDisplay from "@/components/toy/PriceDisplay";
 
 interface Listing {
   id: string;
@@ -10,7 +11,8 @@ interface Listing {
   condition: string;
   category: string;
   priceFiat: number;
-  currency: string;
+  currency: "GBP" | "VND";
+  referencePriceFiat: number | null;
   imageUrls: string[];
   tradeMethod: string;
   shippingRegion: string;
@@ -71,15 +73,20 @@ export default function ListingsPage() {
                 <span className="category-tag">{item.category}</span>
                 <h3>{item.title}</h3>
                 <p className="description">{item.description}</p>
-                <div className="details">
+                <div className="details-row">
                   <span>Method: <strong>{item.tradeMethod}</strong></span>
                   <span>Region: <strong>{item.shippingRegion || "N/A"}</strong></span>
                 </div>
+                
+                {/* Embedded 3-Price Transparency component */}
+                <PriceDisplay 
+                  sellerPrice={Number(item.priceFiat)}
+                  referencePrice={item.referencePriceFiat ? Number(item.referencePriceFiat) : null}
+                  currency={item.currency}
+                />
+
                 <div className="footer-row">
-                  <span className="price">
-                    {item.currency === "GBP" ? "£" : "₫"}{Number(item.priceFiat).toLocaleString()}
-                  </span>
-                  <span className="seller">By {item.seller?.displayName || "Passkey User"}</span>
+                  <span className="seller">Listed by {item.seller?.displayName || "Passkey User"}</span>
                 </div>
               </div>
             </div>
@@ -140,7 +147,7 @@ export default function ListingsPage() {
         }
         .listings-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
           gap: 24px;
         }
         .card {
@@ -156,13 +163,13 @@ export default function ListingsPage() {
           border-color: rgba(0, 255, 135, 0.3);
         }
         .card-image {
-          height: 180px;
+          height: 200px;
           width: 100%;
           object-fit: cover;
           border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
         .card-image-placeholder {
-          height: 180px;
+          height: 200px;
           background: rgba(255, 255, 255, 0.05);
           display: flex;
           align-items: center;
@@ -197,26 +204,20 @@ export default function ListingsPage() {
           overflow: hidden;
           text-overflow: ellipsis;
         }
-        .details {
+        .details-row {
           display: flex;
           justify-content: space-between;
           font-size: 0.8rem;
           color: rgba(255, 255, 255, 0.4);
-          margin-top: auto;
-          padding-top: 8px;
+          margin-top: 4px;
         }
         .footer-row {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-top: 12px;
+          margin-top: auto;
           border-top: 1px solid rgba(255, 255, 255, 0.08);
           padding-top: 12px;
-        }
-        .price {
-          font-size: 1.25rem;
-          font-weight: 700;
-          color: #60efff;
         }
         .seller {
           font-size: 0.8rem;
