@@ -62,18 +62,22 @@ export default function ListingsPage() {
         <div className="listings-grid">
           {listings.map((item) => (
             <div key={item.id} className="card">
-              <div className="card-image-placeholder">🧸</div>
+              {item.imageUrls && item.imageUrls.length > 0 ? (
+                <img src={item.imageUrls[0]} alt={item.title} className="card-image" />
+              ) : (
+                <div className="card-image-placeholder">🧸</div>
+              )}
               <div className="card-content">
                 <span className="category-tag">{item.category}</span>
                 <h3>{item.title}</h3>
                 <p className="description">{item.description}</p>
                 <div className="details">
                   <span>Method: <strong>{item.tradeMethod}</strong></span>
-                  <span>Region: <strong>{item.shippingRegion}</strong></span>
+                  <span>Region: <strong>{item.shippingRegion || "N/A"}</strong></span>
                 </div>
                 <div className="footer-row">
                   <span className="price">
-                    {item.currency === "GBP" ? "£" : "₫"}{item.priceFiat.toLocaleString()}
+                    {item.currency === "GBP" ? "£" : "₫"}{Number(item.priceFiat).toLocaleString()}
                   </span>
                   <span className="seller">By {item.seller?.displayName || "Passkey User"}</span>
                 </div>
@@ -145,9 +149,17 @@ export default function ListingsPage() {
           border-radius: 12px;
           overflow: hidden;
           transition: border-color 0.2s;
+          display: flex;
+          flex-direction: column;
         }
         .card:hover {
           border-color: rgba(0, 255, 135, 0.3);
+        }
+        .card-image {
+          height: 180px;
+          width: 100%;
+          object-fit: cover;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
         .card-image-placeholder {
           height: 180px;
@@ -156,12 +168,14 @@ export default function ListingsPage() {
           align-items: center;
           justify-content: center;
           font-size: 3rem;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
         .card-content {
           padding: 16px;
           display: flex;
           flex-direction: column;
           gap: 8px;
+          flex-grow: 1;
         }
         .category-tag {
           font-size: 0.75rem;
@@ -188,13 +202,14 @@ export default function ListingsPage() {
           justify-content: space-between;
           font-size: 0.8rem;
           color: rgba(255, 255, 255, 0.4);
-          margin-top: 8px;
+          margin-top: auto;
+          padding-top: 8px;
         }
         .footer-row {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-top: 16px;
+          margin-top: 12px;
           border-top: 1px solid rgba(255, 255, 255, 0.08);
           padding-top: 12px;
         }
