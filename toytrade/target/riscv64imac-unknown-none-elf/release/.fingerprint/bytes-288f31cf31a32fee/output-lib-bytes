@@ -1,6 +1,0 @@
-rustc-LLVM ERROR: Cannot select: 0x10b093000: i64,ch = AtomicLoadAdd<(load store release (s64) on %ir.4)> 0x109f50488, 0x10b093310, Constant:i64<-1>
-  0x10b093310: i64 = add nuw 0x10b093a10, Constant:i64<32>
-    0x10b093a10: i64,ch = CopyFromReg 0x109f50488, Register:i64 %1
-In function: _ZN5bytes9bytes_mut13shared_v_drop17ha57074b37d6441ddE
-error: rustc interrupted by SIGSEGV, printing backtrace
-
