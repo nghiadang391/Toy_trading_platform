@@ -61,8 +61,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // Reference price estimation mockup for MVP (will fetch SerpApi in Phase 5)
-    // For now we set referencePriceFiat to null or static estimate
+    // Run Safety Recall Check
+    const { checkToySafety } = await import("@/lib/safety/recall-checker");
+    const safetyResult = checkToySafety(title, description);
+
+    // Reference price estimation mockup for MVP
     const referencePriceFiat = null;
 
     const listing = await prisma.listing.create({
@@ -78,6 +81,8 @@ export async function POST(request: Request) {
         tradeMethod: tradeMethod as TradeMethod,
         shippingRegion: shippingRegion as Region,
         location: location || null,
+        isRecalled: safetyResult.isRecalled,
+        recallReason: safetyResult.recallReason,
         sellerId,
         status: "ACTIVE",
       },

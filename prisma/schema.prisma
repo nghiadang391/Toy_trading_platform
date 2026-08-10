@@ -38,10 +38,13 @@ model Listing {
   tradeMethod     TradeMethod                 // MEETUP, SHIPPING, BOTH
   shippingRegion  Region?
   location        String?                     // Detail address or meetup location (e.g. "Hammersmith, London" or "District 1, HCMC")
+  isRecalled      Boolean        @default(false)
+  recallReason    String?
   sellerId        String
   seller          User           @relation(fields: [sellerId], references: [id])
   createdAt       DateTime       @default(now())
   trades          Trade[]
+  passportLogs    PassportLog[]
 }
 
 model Trade {
@@ -62,10 +65,24 @@ model Trade {
   status          TradeStatus  @default(PENDING)
   buyerConfirmed  Boolean      @default(false)
   sellerConfirmed Boolean      @default(false)
+  qrCodeToken     String?
+  qrCodeExpiresAt DateTime?
   expiresAt       DateTime                    // Escrow timeout (7 days)
   createdAt       DateTime     @default(now())
   completedAt     DateTime?
   ratings         Rating[]
+}
+
+model PassportLog {
+  id           String       @id @default(cuid())
+  listingId    String
+  listing      Listing      @relation(fields: [listingId], references: [id])
+  tradeId      String?
+  ownerAddress String
+  condition    ToyCondition
+  photoUrl     String?
+  notes        String?
+  createdAt    DateTime     @default(now())
 }
 
 model Rating {

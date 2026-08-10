@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import PriceDisplay from "@/components/toy/PriceDisplay";
+import ToyPassportModal from "@/components/passport/ToyPassportModal";
+import QrHandoverModal from "@/components/trade/QrHandoverModal";
 
 interface Listing {
   id: string;
@@ -17,16 +19,23 @@ interface Listing {
   tradeMethod: string;
   shippingRegion: string;
   location: string | null;
+  isRecalled: boolean;
+  recallReason: string | null;
   status: string;
   seller: {
     displayName: string;
     joyIdAddress: string;
   };
+  trades?: Array<{ id: string }>;
 }
 
 export default function ListingsPage() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Modal State
+  const [selectedPassportId, setSelectedPassportId] = useState<string | null>(null);
+  const [selectedTradeId, setSelectedTradeId] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchListings() {
@@ -71,7 +80,17 @@ export default function ListingsPage() {
                 <div className="card-image-placeholder">🧸</div>
               )}
               <div className="card-content">
-                <span className="category-tag">{item.category}</span>
+                <div className="card-header-tags">
+                  <span className="category-tag">{item.category}</span>
+                  {item.isRecalled ? (
+                    <span className="safety-tag hazard" title={item.recallReason || "Safety Warning"}>
+                      ⚠️ Recalled
+                    </span>
+                  ) : (
+                    <span className="safety-tag safe">🛡️ Safety Checked</span>
+                  )}
+                </div>
+
                 <h3>{item.title}</h3>
                 <p className="description">{item.description}</p>
                 <div className="details-row">
@@ -91,6 +110,23 @@ export default function ListingsPage() {
                   currency={item.currency}
                 />
 
+                {/* Interactive Action Buttons for Toy Passport & QR Handover */}
+                <div className="card-actions">
+                  <button
+                    className="action-btn passport-btn"
+                    onClick={() => setSelectedPassportId(item.id)}
+                  >
+                    📜 Toy Passport
+                  </button>
+
+                  <button
+                    className="action-btn qr-btn"
+                    onClick={() => setSelectedTradeId(item.trades?.[0]?.id || item.id)}
+                  >
+                    📱 QR Handover
+                  </button>
+                </div>
+
                 <div className="footer-row">
                   <span className="seller">Listed by {item.seller?.displayName || "Passkey User"}</span>
                 </div>
@@ -99,6 +135,20 @@ export default function ListingsPage() {
           ))}
         </div>
       )}
+
+      {/* Toy Passport Spore DOB Modal */}
+      <ToyPassportModal
+        listingId={selectedPassportId || ""}
+        isOpen={!!selectedPassportId}
+        onClose={() => setSelectedPassportId(null)}
+      />
+
+      {/* QR Meetup Handover Modal */}
+      <QrHandoverModal
+        tradeId={selectedTradeId || ""}
+        isOpen={!!selectedTradeId}
+        onClose={() => setSelectedTradeId(null)}
+      />
 
       <style jsx>{`
         .container {
@@ -190,12 +240,31 @@ export default function ListingsPage() {
           gap: 8px;
           flex-grow: 1;
         }
+        .card-header-tags {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
         .category-tag {
           font-size: 0.75rem;
           color: #00ff87;
           text-transform: uppercase;
           font-weight: 700;
           letter-spacing: 0.05em;
+        }
+        .safety-tag {
+          font-size: 0.75rem;
+          padding: 2px 8px;
+          border-radius: 4px;
+          font-weight: 600;
+        }
+        .safety-tag.safe {
+          background: rgba(0, 255, 135, 0.1);
+          color: #00ff87;
+        }
+        .safety-tag.hazard {
+          background: rgba(255, 71, 87, 0.1);
+          color: #ff4757;
         }
         .card-content h3 {
           font-size: 1.2rem;
@@ -224,6 +293,36 @@ export default function ListingsPage() {
           font-size: 0.8rem;
           color: #60efff;
           margin-top: 2px;
+        }
+        .card-actions {
+          display: flex;
+          gap: 8px;
+          margin-top: 8px;
+        }
+        .action-btn {
+          flex: 1;
+          padding: 8px 12px;
+          border-radius: 6px;
+          font-size: 0.8rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+        .passport-btn {
+          background: rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          color: #ffffff;
+        }
+        .passport-btn:hover {
+          background: rgba(255, 255, 255, 0.15);
+        }
+        .qr-btn {
+          background: rgba(0, 255, 135, 0.1);
+          border: 1px solid rgba(0, 255, 135, 0.3);
+          color: #00ff87;
+        }
+        .qr-btn:hover {
+          background: rgba(0, 255, 135, 0.2);
         }
         .footer-row {
           display: flex;

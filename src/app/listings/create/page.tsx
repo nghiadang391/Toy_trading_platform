@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 export default function CreateListingPage() {
@@ -18,6 +18,28 @@ export default function CreateListingPage() {
   const [shippingRegion, setShippingRegion] = useState("UK");
   const [location, setLocation] = useState("");
 
+  // Safety recall status
+  const [safetyCheck, setSafetyCheck] = useState<{ isRecalled: boolean; recallReason: string | null } | null>(null);
+
+  // Live safety recall validation
+  useEffect(() => {
+    if (!title.trim()) {
+      setSafetyCheck(null);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/safety-check?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}`);
+        const result = await res.json();
+        setSafetyCheck(result);
+      } catch (e) {
+        console.error("Safety check error:", e);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [title, description]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title || !priceFiat) return;
@@ -25,7 +47,6 @@ export default function CreateListingPage() {
     setSubmitting(true);
     try {
       // Mock JoyID registry sync setup:
-      // First ensure the user has a mock registered account profile
       const userRes = await fetch("/api/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -82,6 +103,21 @@ export default function CreateListingPage() {
             required
           />
         </div>
+
+        {/* Live Safety Recall Check Warning Banner */}
+        {safetyCheck && (
+          <div className={`safety-alert ${safetyCheck.isRecalled ? "hazard" : "safe"}`}>
+            {safetyCheck.isRecalled ? (
+              <>
+                ⚠️ <strong>Safety Recall Alert:</strong> {safetyCheck.recallReason}
+              </>
+            ) : (
+              <>
+                🛡️ <strong>Safety Checked:</strong> No official recall warnings found for this toy model.
+              </>
+            )}
+          </div>
+        )}
 
         <div className="form-group">
           <label htmlFor="description">Description</label>
@@ -201,6 +237,22 @@ export default function CreateListingPage() {
           display: flex;
           flex-direction: column;
           gap: 8px;
+        }
+        .safety-alert {
+          padding: 12px 16px;
+          border-radius: 8px;
+          font-size: 0.85rem;
+          line-height: 1.4;
+        }
+        .safety-alert.safe {
+          background: rgba(0, 255, 135, 0.1);
+          border: 1px solid rgba(0, 255, 135, 0.3);
+          color: #00ff87;
+        }
+        .safety-alert.hazard {
+          background: rgba(255, 71, 87, 0.1);
+          border: 1px solid rgba(255, 71, 87, 0.3);
+          color: #ff4757;
         }
         .row {
           display: flex;
