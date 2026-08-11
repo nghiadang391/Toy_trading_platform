@@ -86,13 +86,9 @@ export default function MessagesPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  async function handleSend(e: React.FormEvent) {
-    e.preventDefault();
+  async function sendMsg(content: string) {
     const roomId = activeRoom?.id;
-    if (!newMsg.trim() || !roomId) return;
-
-    const content = newMsg;
-    setNewMsg(""); // Clear immediately for UX
+    if (!content.trim() || !roomId) return;
 
     try {
       const res = await fetch(`/api/chat/rooms/${roomId}/messages`, {
@@ -112,6 +108,19 @@ export default function MessagesPage() {
       console.error("Failed to send message:", err);
     }
   }
+
+  async function handleSend(e: React.FormEvent) {
+    e.preventDefault();
+    const content = newMsg;
+    setNewMsg(""); // Clear immediately for UX
+    await sendMsg(content);
+  }
+
+  const suggestions = [
+    "Sản phẩm này còn không ạ? / Is this item still available?",
+    "Bạn có thể chụp thêm ảnh không? / Can you send more photos?",
+    "Địa chỉ giao dịch ở đâu vậy bạn? / Where can we meet?"
+  ];
 
   return (
     <div className="inbox-container">
@@ -187,6 +196,15 @@ export default function MessagesPage() {
                   <div ref={messagesEndRef} />
                 </div>
               )}
+            </div>
+
+            {/* Quick Suggestions bar */}
+            <div className="suggestions-bar">
+              {suggestions.map((text, idx) => (
+                <button key={idx} className="suggestion-pill" onClick={() => sendMsg(text)}>
+                  {text}
+                </button>
+              ))}
             </div>
 
             {/* Input footer */}
@@ -372,6 +390,29 @@ export default function MessagesPage() {
           font-size: 0.7rem;
           align-self: flex-end;
           opacity: 0.6;
+        }
+        .suggestions-bar {
+          padding: 12px 24px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          background: rgba(255, 255, 255, 0.02);
+          border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .suggestion-pill {
+          background: rgba(255, 255, 255, 0.04);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          color: #60efff;
+          padding: 8px 14px;
+          border-radius: 20px;
+          font-size: 0.8rem;
+          text-align: left;
+          cursor: pointer;
+          transition: background 0.2s, border-color 0.2s;
+        }
+        .suggestion-pill:hover {
+          background: rgba(96, 239, 255, 0.1);
+          border-color: #60efff;
         }
         .chat-footer {
           padding: 24px;
