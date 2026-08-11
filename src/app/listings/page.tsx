@@ -5,6 +5,7 @@ import Link from "next/link";
 import PriceDisplay from "@/components/toy/PriceDisplay";
 import ToyPassportModal from "@/components/passport/ToyPassportModal";
 import QrHandoverModal from "@/components/trade/QrHandoverModal";
+import ChatModal from "@/components/chat/ChatModal";
 
 interface Listing {
   id: string;
@@ -22,6 +23,7 @@ interface Listing {
   isRecalled: boolean;
   recallReason: string | null;
   status: string;
+  sellerId: string;
   seller: {
     displayName: string;
     joyIdAddress: string;
@@ -36,6 +38,12 @@ export default function ListingsPage() {
   // Modal State
   const [selectedPassportId, setSelectedPassportId] = useState<string | null>(null);
   const [selectedTradeId, setSelectedTradeId] = useState<string | null>(null);
+
+  // Chat Modal State
+  const [selectedChatListing, setSelectedChatListing] = useState<Listing | null>(null);
+
+  // Dummy Buyer ID for MVP simulations
+  const dummyBuyerId = "cmslwc9bl0001oerq542iln7o"; // Seed user ID
 
   useEffect(() => {
     async function fetchListings() {
@@ -110,20 +118,28 @@ export default function ListingsPage() {
                   currency={item.currency}
                 />
 
-                {/* Interactive Action Buttons for Toy Passport & QR Handover */}
+                {/* Interactive Action Buttons for Toy Passport, QR Handover & Chat */}
                 <div className="card-actions">
                   <button
                     className="action-btn passport-btn"
                     onClick={() => setSelectedPassportId(item.id)}
                   >
-                    📜 Toy Passport
+                    📜 Passport
                   </button>
 
                   <button
                     className="action-btn qr-btn"
                     onClick={() => setSelectedTradeId(item.trades?.[0]?.id || item.id)}
                   >
-                    📱 QR Handover
+                    📱 Handover
+                  </button>
+
+                  <button
+                    className="action-btn chat-btn"
+                    onClick={() => setSelectedChatListing(item)}
+                    disabled={item.sellerId === dummyBuyerId} // Can't chat with self
+                  >
+                    💬 Chat
                   </button>
                 </div>
 
@@ -149,6 +165,19 @@ export default function ListingsPage() {
         isOpen={!!selectedTradeId}
         onClose={() => setSelectedTradeId(null)}
       />
+
+      {/* P2P Chat Modal */}
+      {selectedChatListing && (
+        <ChatModal
+          listingId={selectedChatListing.id}
+          buyerId={dummyBuyerId}
+          sellerId={selectedChatListing.sellerId}
+          sellerName={selectedChatListing.seller.displayName}
+          toyTitle={selectedChatListing.title}
+          isOpen={!!selectedChatListing}
+          onClose={() => setSelectedChatListing(null)}
+        />
+      )}
 
       <style jsx>{`
         .container {
@@ -296,14 +325,14 @@ export default function ListingsPage() {
         }
         .card-actions {
           display: flex;
-          gap: 8px;
+          gap: 6px;
           margin-top: 8px;
         }
         .action-btn {
           flex: 1;
-          padding: 8px 12px;
+          padding: 8px 6px;
           border-radius: 6px;
-          font-size: 0.8rem;
+          font-size: 0.75rem;
           font-weight: 600;
           cursor: pointer;
           transition: background 0.2s;
@@ -323,6 +352,18 @@ export default function ListingsPage() {
         }
         .qr-btn:hover {
           background: rgba(0, 255, 135, 0.2);
+        }
+        .chat-btn {
+          background: rgba(96, 239, 255, 0.1);
+          border: 1px solid rgba(96, 239, 255, 0.3);
+          color: #60efff;
+        }
+        .chat-btn:hover:not(:disabled) {
+          background: rgba(96, 239, 255, 0.2);
+        }
+        .chat-btn:disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
         }
         .footer-row {
           display: flex;

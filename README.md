@@ -1,4 +1,4 @@
-# ToyTrade — CKB Toy Trading Platform
+ # ToyTrade — CKB Toy Trading Platform
 
 ToyTrade is a peer-to-peer toy exchange platform that helps parents swap outgrown toys. Built on the **Nervos CKB** blockchain, ToyTrade provides trustless transaction escrow, on-chain provenance tracking via **Spore DOBs (Toy Passports)**, and real-time safety verification to protect parent buyers.
 

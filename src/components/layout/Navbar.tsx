@@ -52,6 +52,9 @@ export default function Navbar() {
             <Link href="/listings/create" className="text-sm font-semibold text-white/70 hover:text-white transition-colors">
               Sell a Toy
             </Link>
+            <span className="text-sm font-semibold text-white/40 cursor-not-allowed">
+              Messages
+            </span>
           </div>
           
           <div>
