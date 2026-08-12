@@ -1,5 +1,5 @@
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
 }
 
 generator client {
@@ -33,7 +33,7 @@ model Listing {
   priceFiat       Decimal                     // Price in local fiat (seller's price)
   currency        Currency       @default(GBP) // GBP or VND
   referencePriceFiat Decimal?                 // From image search (N/A if null)
-  imageUrls       String[]                    // Uploaded photo URLs
+  imageUrls       String                      // Uploaded photo URLs (JSON array)
   imageSearchHash String?                     // Hash for caching ref price lookup
   sporeDobId      String?        @unique      // Spore DOB Cell outpoint (Toy Passport)
   sporeTxHash     String?                     // Transaction hash of DOB mint

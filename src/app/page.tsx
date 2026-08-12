@@ -1,23 +1,27 @@
 "use client";
 
 import Link from "next/link";
+import { useLanguage } from "@/lib/LanguageContext";
 
 export default function Home() {
+  const { t } = useLanguage();
+
   return (
     <div className="landing-container">
       <header className="hero-section">
         <h1 className="hero-title">
-          Trade Kids' Toys Securely with <span>CKB Escrow</span>
+          {t("heroTitle").split("CKB Escrow")[0]}
+          <span>CKB Escrow</span>
         </h1>
         <p className="hero-subtitle">
-          Don't buy new—trade used toys! Each toy gets an on-chain **Toy Passport (Spore DOB)** tracking ownership, ratings, and provenance. Settle payments in CKB with hidden wallet complexity.
+          {t("heroSubtitle")}
         </p>
         <div className="hero-actions">
           <Link href="/listings" className="primary-action-btn">
-            Browse Market
+            {t("browseMarket")}
           </Link>
           <Link href="/listings/create" className="secondary-action-btn">
-            List a Toy
+            {t("listAToy")}
           </Link>
         </div>
       </header>
@@ -25,18 +29,18 @@ export default function Home() {
       <section className="features-grid">
         <div className="feature-card">
           <div className="feature-icon">🛡️</div>
-          <h3>CKB Trust Escrow</h3>
-          <p>Locked smart contracts ensure CKB payments are only released when both parties confirm meetup or shipping delivery.</p>
+          <h3>{t("escrowTitle")}</h3>
+          <p>{t("escrowDesc")}</p>
         </div>
         <div className="feature-card">
           <div className="feature-icon">📖</div>
-          <h3>Toy Passport DOB</h3>
-          <p>Every toy has an on-chain ownership timeline (Spore DOB NFT) containing verification data that transfers with the trade.</p>
+          <h3>{t("passportTitle")}</h3>
+          <p>{t("passportDesc")}</p>
         </div>
         <div className="feature-card">
           <div className="feature-icon">🔍</div>
-          <h3>Visual Reference Price</h3>
-          <p>Google Lens visual shopping lookup checks the average market price of the toy so you get a fair deal.</p>
+          <h3>{t("lensTitle")}</h3>
+          <p>{t("lensDesc")}</p>
         </div>
       </section>
 
@@ -69,6 +73,7 @@ export default function Home() {
           background: linear-gradient(135deg, #00ff87 0%, #60efff 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
+          margin-left: 8px;
         }
         .hero-subtitle {
           font-size: 1.2rem;

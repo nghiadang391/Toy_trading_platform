@@ -30,3 +30,7 @@ next-env.d.ts
 # Project-specific ignores
 implementation_plan.md
 generate_deck.sh
+
+# Local development database
+*.db
+*.db-journal

@@ -33,7 +33,15 @@ export async function GET(request: Request) {
       },
     });
 
-    return NextResponse.json(listings);
+    // Parse imageUrls from JSON string for SQLite compatibility
+    const parsed = listings.map((l) => ({
+      ...l,
+      imageUrls: (() => {
+        try { return JSON.parse(l.imageUrls as string); } catch { return []; }
+      })(),
+    }));
+
+    return NextResponse.json(parsed);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -77,7 +85,7 @@ export async function POST(request: Request) {
         priceFiat,
         currency: currency as Currency,
         referencePriceFiat,
-        imageUrls: imageUrls || [],
+        imageUrls: JSON.stringify(imageUrls || []),
         tradeMethod: tradeMethod as TradeMethod,
         shippingRegion: shippingRegion as Region,
         location: location || null,

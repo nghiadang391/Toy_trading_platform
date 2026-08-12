@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useLanguage } from "@/lib/LanguageContext";
 
 interface PriceDisplayProps {
   sellerPrice: number;
@@ -11,6 +12,7 @@ interface PriceDisplayProps {
 export default function PriceDisplay({ sellerPrice, referencePrice, currency }: PriceDisplayProps) {
   const [ckbRate, setCkbRate] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const { t } = useLanguage();
 
   const symbol = currency === "GBP" ? "£" : "₫";
 
@@ -34,8 +36,6 @@ export default function PriceDisplay({ sellerPrice, referencePrice, currency }: 
   }, [currency]);
 
   // Calculate CKB equivalent
-  // rate represents fiat value of 1 CKB. 
-  // CKB Amount = fiat price / rate
   const ckbAmount = ckbRate ? Math.round(sellerPrice / ckbRate) : null;
 
   return (
@@ -43,31 +43,31 @@ export default function PriceDisplay({ sellerPrice, referencePrice, currency }: 
       <div className="prices-grid">
         {/* 1. Seller Price */}
         <div className="price-item seller-price">
-          <span className="price-label">Seller Price</span>
+          <span className="price-label">{t("sellerPrice")}</span>
           <span className="price-value">{symbol}{sellerPrice.toLocaleString()}</span>
         </div>
 
         {/* 2. Reference Market Price */}
         <div className="price-item market-price">
-          <span className="price-label">Market Reference</span>
+          <span className="price-label">{t("marketReference")}</span>
           <span className="price-value">
             {referencePrice ? `${symbol}${referencePrice.toLocaleString()}` : "N/A"}
           </span>
           {referencePrice && sellerPrice > referencePrice * 1.5 && (
-            <span className="price-warning-tag">⚠️ Overpriced</span>
+            <span className="price-warning-tag">⚠️ {t("overpriced")}</span>
           )}
         </div>
 
         {/* 3. Dynamic CKB Settle Price */}
         <div className="price-item ckb-price">
-          <span className="price-label">Settle Cost</span>
+          <span className="price-label">{t("settleCost")}</span>
           <span className="price-value">
             {loading ? (
               <span className="price-loader">Loading live feed...</span>
             ) : ckbAmount ? (
               `≈ ${ckbAmount.toLocaleString()} CKB`
             ) : (
-              "Feed Offline"
+              t("feedOffline")
             )}
           </span>
         </div>

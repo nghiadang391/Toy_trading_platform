@@ -6,6 +6,7 @@ import PriceDisplay from "@/components/toy/PriceDisplay";
 import ToyPassportModal from "@/components/passport/ToyPassportModal";
 import QrHandoverModal from "@/components/trade/QrHandoverModal";
 import ChatModal from "@/components/chat/ChatModal";
+import { useLanguage } from "@/lib/LanguageContext";
 
 interface Listing {
   id: string;
@@ -34,6 +35,7 @@ interface Listing {
 export default function ListingsPage() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
+  const { t } = useLanguage();
 
   // Modal State
   const [selectedPassportId, setSelectedPassportId] = useState<string | null>(null);
@@ -63,19 +65,19 @@ export default function ListingsPage() {
   return (
     <div className="container">
       <div className="header-row">
-        <h1>Browse Used Toys</h1>
+        <h1>{t("browseUsedToys")}</h1>
         <Link href="/listings/create" className="sell-btn">
-          Sell a Toy
+          {t("sellAToy")}
         </Link>
       </div>
 
       {loading ? (
-        <div className="loading">Loading listings...</div>
+        <div className="loading">{t("loadingListings")}</div>
       ) : listings.length === 0 ? (
         <div className="empty-state">
-          <p>No toys listed for trade yet. Be the first to list one!</p>
+          <p>{t("noToysYet")}</p>
           <Link href="/listings/create" className="sell-btn inline">
-            List a Toy Now
+            {t("listAToyNow")}
           </Link>
         </div>
       ) : (
@@ -92,18 +94,18 @@ export default function ListingsPage() {
                   <span className="category-tag">{item.category}</span>
                   {item.isRecalled ? (
                     <span className="safety-tag hazard" title={item.recallReason || "Safety Warning"}>
-                      ⚠️ Recalled
+                      ⚠️ {t("recalled")}
                     </span>
                   ) : (
-                    <span className="safety-tag safe">🛡️ Safety Checked</span>
+                    <span className="safety-tag safe">🛡️ {t("safetyChecked")}</span>
                   )}
                 </div>
 
                 <h3>{item.title}</h3>
                 <p className="description">{item.description}</p>
                 <div className="details-row">
-                  <span>Method: <strong>{item.tradeMethod}</strong></span>
-                  <span>Region: <strong>{item.shippingRegion || "N/A"}</strong></span>
+                  <span>{t("method")}: <strong>{item.tradeMethod}</strong></span>
+                  <span>{t("region")}: <strong>{item.shippingRegion || "N/A"}</strong></span>
                 </div>
                 {item.location && (
                   <div className="location-row">
@@ -124,14 +126,14 @@ export default function ListingsPage() {
                     className="action-btn passport-btn"
                     onClick={() => setSelectedPassportId(item.id)}
                   >
-                    📜 Passport
+                    📜 {t("passportBtn")}
                   </button>
 
                   <button
                     className="action-btn qr-btn"
                     onClick={() => setSelectedTradeId(item.trades?.[0]?.id || item.id)}
                   >
-                    📱 Handover
+                    📱 {t("handoverBtn")}
                   </button>
 
                   <button
@@ -139,12 +141,12 @@ export default function ListingsPage() {
                     onClick={() => setSelectedChatListing(item)}
                     disabled={item.sellerId === dummyBuyerId} // Can't chat with self
                   >
-                    💬 Chat
+                    💬 {t("chatBtn")}
                   </button>
                 </div>
 
                 <div className="footer-row">
-                  <span className="seller">Listed by {item.seller?.displayName || "Passkey User"}</span>
+                  <span className="seller">{t("listedBy")} {item.seller?.displayName || "Passkey User"}</span>
                 </div>
               </div>
             </div>
@@ -299,43 +301,48 @@ export default function ListingsPage() {
           font-size: 1.2rem;
           font-weight: 700;
           color: #ffffff;
+          margin: 4px 0;
         }
         .description {
           font-size: 0.9rem;
           color: rgba(255, 255, 255, 0.6);
           line-height: 1.4;
-          height: 40px;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
           overflow: hidden;
-          text-overflow: ellipsis;
+          margin-bottom: 8px;
         }
         .details-row {
           display: flex;
           justify-content: space-between;
           font-size: 0.8rem;
-          color: rgba(255, 255, 255, 0.4);
-          margin-top: 4px;
+          color: rgba(255, 255, 255, 0.5);
+        }
+        .details-row strong {
+          color: rgba(255, 255, 255, 0.85);
         }
         .location-row {
           display: flex;
           align-items: center;
-          gap: 4px;
-          font-size: 0.8rem;
-          color: #60efff;
-          margin-top: 2px;
+          gap: 6px;
+          font-size: 0.85rem;
+          color: #ff4757;
         }
         .card-actions {
-          display: flex;
-          gap: 6px;
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 8px;
           margin-top: 8px;
         }
         .action-btn {
-          flex: 1;
-          padding: 8px 6px;
+          padding: 8px 0;
           border-radius: 6px;
-          font-size: 0.75rem;
+          font-size: 0.8rem;
           font-weight: 600;
+          border: none;
           cursor: pointer;
-          transition: background 0.2s;
+          transition: background 0.2s, opacity 0.2s;
         }
         .passport-btn {
           background: rgba(255, 255, 255, 0.08);
@@ -343,39 +350,34 @@ export default function ListingsPage() {
           color: #ffffff;
         }
         .passport-btn:hover {
-          background: rgba(255, 255, 255, 0.15);
+          background: rgba(255, 255, 255, 0.12);
         }
         .qr-btn {
           background: rgba(0, 255, 135, 0.1);
-          border: 1px solid rgba(0, 255, 135, 0.3);
+          border: 1px solid rgba(0, 255, 135, 0.2);
           color: #00ff87;
         }
         .qr-btn:hover {
-          background: rgba(0, 255, 135, 0.2);
+          background: rgba(0, 255, 135, 0.15);
         }
         .chat-btn {
           background: rgba(96, 239, 255, 0.1);
-          border: 1px solid rgba(96, 239, 255, 0.3);
+          border: 1px solid rgba(96, 239, 255, 0.2);
           color: #60efff;
         }
         .chat-btn:hover:not(:disabled) {
-          background: rgba(96, 239, 255, 0.2);
+          background: rgba(96, 239, 255, 0.15);
         }
         .chat-btn:disabled {
-          opacity: 0.4;
+          opacity: 0.5;
           cursor: not-allowed;
         }
         .footer-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
           margin-top: auto;
-          border-top: 1px solid rgba(255, 255, 255, 0.08);
           padding-top: 12px;
-        }
-        .seller {
-          font-size: 0.8rem;
-          color: rgba(255, 255, 255, 0.5);
+          border-top: 1px solid rgba(255, 255, 255, 0.06);
+          font-size: 0.75rem;
+          color: rgba(255, 255, 255, 0.45);
         }
       `}</style>
     </div>

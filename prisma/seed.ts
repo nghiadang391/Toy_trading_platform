@@ -1,14 +1,14 @@
 import "dotenv/config";
+import path from "path";
 import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
-import pg from "pg";
+import { PrismaLibSql } from "@prisma/adapter-libsql";
 
-const connectionString = `${process.env.DATABASE_URL}`;
-const pool = new pg.Pool({ connectionString });
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
+const DB_PATH = `file:${path.resolve("prisma/dev.db")}`;
 
 async function main() {
+  const adapter = new PrismaLibSql({ url: DB_PATH });
+  const prisma = new PrismaClient({ adapter });
+
   console.log("Seeding sample toys...");
 
   // 1. Create a dummy seller
@@ -24,19 +24,24 @@ async function main() {
   });
 
   // 2. Create another dummy user to act as current logged-in buyer
-  const buyer = await prisma.user.upsert({
+  await prisma.user.upsert({
     where: { joyIdAddress: "ckt1qzda0crj2v64chvj3g0cj2v64chvj3g0cj2v64chvj3g0cj2v64chvj3g1" },
     update: {},
     create: {
-      id: "cmslwc9bl0000oerq542iln7p",
+      id: "cmslwc9bl0001oerq542iln7o",
       joyIdAddress: "ckt1qzda0crj2v64chvj3g0cj2v64chvj3g0cj2v64chvj3g0cj2v64chvj3g1",
       displayName: "Active Parent Trader",
       region: "UK",
     },
   });
 
-  // 3. Create Sample Listings
-  const listing1 = await prisma.listing.create({
+  console.log(`Created seller: ${seller.displayName}`);
+
+  // Wipe existing listings before re-seeding to avoid duplicates
+  await prisma.listing.deleteMany({});
+
+  // 3. Create Sample Listings with correct image paths
+  await prisma.listing.create({
     data: {
       title: "LEGO Star Wars Millennium Falcon #75192",
       description: "Ultimate Collector Series Millennium Falcon. Complete set with original box and instructions. Never played with.",
@@ -45,14 +50,15 @@ async function main() {
       priceFiat: 150.00,
       currency: "GBP",
       referencePriceFiat: 145.00,
-      imageUrls: ["/toy_lego_millennium_falcon_1786285814116.png"],
+      imageUrls: JSON.stringify(["/assets/lego_falcon.png"]),
       tradeMethod: "MEETUP",
       location: "Hammersmith, London",
+      shippingRegion: "UK",
       sellerId: seller.id,
     },
   });
 
-  const listing2 = await prisma.listing.create({
+  await prisma.listing.create({
     data: {
       title: "GAN 11 M Pro Rubik's Speed Cube",
       description: "Premium magnetic speed cube. Turns super smooth. Includes extra tensioning magnets and core tools.",
@@ -61,14 +67,15 @@ async function main() {
       priceFiat: 25.00,
       currency: "GBP",
       referencePriceFiat: 24.50,
-      imageUrls: ["/toy_rubiks_speed_cube_1786286057979.png"],
+      imageUrls: JSON.stringify(["/assets/rubiks_cube.png"]),
       tradeMethod: "BOTH",
       location: "Richmond, London",
+      shippingRegion: "UK",
       sellerId: seller.id,
     },
   });
 
-  const listing3 = await prisma.listing.create({
+  await prisma.listing.create({
     data: {
       title: "Wooden Train Set 80-Piece",
       description: "Solid birch track layout with engine, magnetic passenger carriages, suspension bridge, and level crossing.",
@@ -77,22 +84,19 @@ async function main() {
       priceFiat: 35.00,
       currency: "GBP",
       referencePriceFiat: 38.00,
-      imageUrls: ["/toy_wooden_train_set_1786286043449.png"],
+      imageUrls: JSON.stringify(["/assets/wooden_train.png"]),
       tradeMethod: "MEETUP",
       location: "Kensington, London",
+      shippingRegion: "UK",
       sellerId: seller.id,
     },
   });
 
-  console.log("Seeding complete! Added 3 sample toys.");
+  console.log("Seeding complete! Added 3 sample toy listings with correct image paths.");
+  await prisma.$disconnect();
 }
 
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-    await pool.end();
-  });
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

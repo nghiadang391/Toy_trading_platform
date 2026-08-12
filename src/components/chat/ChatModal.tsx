@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useLanguage } from "@/lib/LanguageContext";
 
 interface ChatModalProps {
   listingId: string | null;
@@ -34,8 +35,8 @@ export default function ChatModal({
   const [room, setRoom] = useState<any>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMsg, setNewMsg] = useState("");
-  const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { t } = useLanguage();
 
   // Initialize or fetch the ChatRoom
   useEffect(() => {
@@ -125,9 +126,9 @@ export default function ChatModal({
   if (!isOpen) return null;
 
   const suggestions = [
-    "Sản phẩm này còn không ạ? / Is this item still available?",
-    "Bạn có thể chụp thêm ảnh không? / Can you send more photos?",
-    "Địa chỉ giao dịch ở đâu vậy bạn? / Where can we meet?"
+    t("suggestion1"),
+    t("suggestion2"),
+    t("suggestion3"),
   ];
 
   return (
@@ -137,7 +138,7 @@ export default function ChatModal({
         <div className="chat-header">
           <div className="header-meta">
             <span className="toy-title">{toyTitle}</span>
-            <h2 className="seller-name">Chatting with {sellerName}</h2>
+            <h2 className="seller-name">{t("chattingWith")} {sellerName}</h2>
           </div>
           <button className="close-btn" onClick={onClose}>✕</button>
         </div>
@@ -145,10 +146,10 @@ export default function ChatModal({
         {/* Messages Body */}
         <div className="chat-body">
           {!room ? (
-            <div className="chat-loader">Connecting private channel...</div>
+            <div className="chat-loader">{t("connectingPrivateChannel")}</div>
           ) : messages.length === 0 ? (
             <div className="chat-empty">
-              <p>No messages yet. Say hello to start discussing the trade!</p>
+              <p>{t("noMessagesYet")}</p>
             </div>
           ) : (
             <div className="messages-list">
@@ -190,11 +191,11 @@ export default function ChatModal({
             type="text"
             value={newMsg}
             onChange={(e) => setNewMsg(e.target.value)}
-            placeholder="Type your message here..."
+            placeholder={t("typeMessageHere")}
             disabled={!room}
           />
           <button type="submit" className="send-btn" disabled={!room || !newMsg.trim()}>
-            Send
+            {t("send")}
           </button>
         </form>
       </div>
@@ -249,14 +250,15 @@ export default function ChatModal({
           color: rgba(255, 255, 255, 0.6);
           font-size: 1.25rem;
           cursor: pointer;
+          transition: color 0.2s;
         }
         .close-btn:hover {
           color: #ffffff;
         }
         .chat-body {
-          flex: 1;
-          overflow-y: auto;
+          flex-grow: 1;
           padding: 20px;
+          overflow-y: auto;
           display: flex;
           flex-direction: column;
         }
@@ -264,13 +266,12 @@ export default function ChatModal({
           margin: auto;
           text-align: center;
           color: rgba(255, 255, 255, 0.4);
-          font-size: 0.9rem;
-          padding: 0 20px;
+          font-size: 0.95rem;
         }
         .messages-list {
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 16px;
         }
         .message-wrapper {
           display: flex;
@@ -284,91 +285,98 @@ export default function ChatModal({
         }
         .message-bubble {
           max-width: 75%;
-          padding: 10px 14px;
+          padding: 12px 16px;
           border-radius: 16px;
           position: relative;
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
         }
-        .message-wrapper.me .message-bubble {
-          background: #00ff87;
+        .me .message-bubble {
+          background: linear-gradient(135deg, #00ff87 0%, #60efff 100%);
           color: #0a0a0a;
           border-bottom-right-radius: 4px;
         }
-        .message-wrapper.them .message-bubble {
+        .them .message-bubble {
           background: rgba(255, 255, 255, 0.08);
           color: #ffffff;
           border-bottom-left-radius: 4px;
-          border: 1px solid rgba(255, 255, 255, 0.08);
         }
         .message-text {
-          font-size: 0.9rem;
+          font-size: 0.95rem;
           line-height: 1.4;
+          margin: 0;
           word-break: break-word;
         }
         .message-time {
           font-size: 0.7rem;
-          align-self: flex-end;
+          display: block;
+          margin-top: 4px;
+          text-align: right;
           opacity: 0.6;
         }
         .suggestions-bar {
-          padding: 8px 20px;
+          padding: 12px 20px;
+          border-top: 1px solid rgba(255, 255, 255, 0.05);
           display: flex;
           flex-direction: column;
-          gap: 6px;
+          gap: 8px;
           background: rgba(255, 255, 255, 0.02);
-          border-top: 1px solid rgba(255, 255, 255, 0.05);
         }
         .suggestion-pill {
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          color: #60efff;
-          padding: 6px 12px;
+          background: rgba(255, 255, 255, 0.04);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          color: rgba(255, 255, 255, 0.8);
+          padding: 8px 12px;
           border-radius: 20px;
-          font-size: 0.75rem;
+          font-size: 0.85rem;
           text-align: left;
           cursor: pointer;
-          transition: background 0.2s, border-color 0.2s;
+          transition: all 0.2s;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
         .suggestion-pill:hover {
-          background: rgba(96, 239, 255, 0.1);
-          border-color: #60efff;
+          background: rgba(0, 255, 135, 0.1);
+          border-color: rgba(0, 255, 135, 0.3);
+          color: #00ff87;
+          transform: translateX(2px);
         }
         .chat-footer {
           padding: 20px;
           border-top: 1px solid rgba(255, 255, 255, 0.08);
           display: flex;
           gap: 12px;
-          background: #0d0d0d;
         }
         .chat-footer input {
-          flex: 1;
+          flex-grow: 1;
           background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          color: #ffffff;
-          padding: 12px;
+          border: 1px solid rgba(255, 255, 255, 0.12);
           border-radius: 8px;
-          font-size: 0.9rem;
-          outline: none;
+          padding: 12px;
+          color: #ffffff;
+          font-size: 0.95rem;
         }
         .chat-footer input:focus {
+          outline: none;
           border-color: #00ff87;
         }
         .send-btn {
-          background: linear-gradient(135deg, #00ff87 0%, #60efff 100%);
-          border: none;
+          background: #00ff87;
           color: #0a0a0a;
+          border: none;
           padding: 0 20px;
-          font-weight: 700;
           border-radius: 8px;
+          font-weight: 700;
           cursor: pointer;
-          font-size: 0.9rem;
           transition: opacity 0.2s;
+        }
+        .send-btn:hover:not(:disabled) {
+          opacity: 0.9;
         }
         .send-btn:disabled {
           opacity: 0.5;
           cursor: not-allowed;
+          background: rgba(255, 255, 255, 0.1);
+          color: rgba(255, 255, 255, 0.3);
         }
       `}</style>
     </div>

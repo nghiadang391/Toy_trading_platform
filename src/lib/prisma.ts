@@ -1,22 +1,17 @@
 import "dotenv/config";
+import path from "path";
 import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
-import pg from "pg";
+import { PrismaLibSql } from "@prisma/adapter-libsql";
 
-const connectionString = `${process.env.DATABASE_URL}`;
+const DB_PATH = `file:${path.resolve("prisma/dev.db")}`;
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
-let prismaInstance: PrismaClient;
-
-if (globalForPrisma.prisma) {
-  prismaInstance = globalForPrisma.prisma;
-} else {
-  const pool = new pg.Pool({ connectionString });
-  const adapter = new PrismaPg(pool);
-  prismaInstance = new PrismaClient({ adapter });
+function createPrisma() {
+  const adapter = new PrismaLibSql({ url: DB_PATH });
+  return new PrismaClient({ adapter });
 }
 
-export const prisma = prismaInstance;
+export const prisma = globalForPrisma.prisma || createPrisma();
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;

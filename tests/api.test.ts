@@ -36,6 +36,7 @@ describe("Backend API Data Integration Checks", () => {
         sellerId: user.id,
         tradeMethod: "MEETUP",
         status: "ACTIVE",
+        imageUrls: JSON.stringify([]),
       },
     });
     expect(listing.title).toBe("LEGO Star Wars");
