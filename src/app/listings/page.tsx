@@ -104,7 +104,7 @@ export default function ListingsPage() {
                 <h3>{item.title}</h3>
                 <p className="description">{item.description}</p>
                 <div className="details-row">
-                  <span>{t("method")}: <strong>{item.tradeMethod}</strong></span>
+                  <span>{t("method")}: <strong>{t(`method_${item.tradeMethod}`)}</strong></span>
                   <span>{t("region")}: <strong>{item.shippingRegion || "N/A"}</strong></span>
                 </div>
                 {item.location && (

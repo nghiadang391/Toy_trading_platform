@@ -50,6 +50,9 @@ const translations: Record<Language, Record<string, string>> = {
     handoverBtn: "Handover",
     chatBtn: "Chat",
     listedBy: "Listed by",
+    method_MEETUP: "Meetup",
+    method_SHIPPING: "Shipping",
+    method_BOTH: "Meetup or Shipping",
 
     // Chat Modal
     chattingWith: "Chatting with",
@@ -100,6 +103,9 @@ const translations: Record<Language, Record<string, string>> = {
     handoverBtn: "Bàn giao",
     chatBtn: "Nhắn tin",
     listedBy: "Đăng bởi",
+    method_MEETUP: "Gặp mặt trực tiếp",
+    method_SHIPPING: "Giao hàng (Ship)",
+    method_BOTH: "Gặp mặt hoặc Giao hàng",
 
     // Chat Modal
     chattingWith: "Nhắn tin với",
