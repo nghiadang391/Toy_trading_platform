@@ -4,6 +4,8 @@ describe("Backend API Data Integration Checks", () => {
   beforeAll(async () => {
     // Clear test records
     await prisma.rating.deleteMany();
+    await prisma.chatMessage.deleteMany();
+    await prisma.chatRoom.deleteMany();
     await prisma.trade.deleteMany();
     await prisma.listing.deleteMany();
     await prisma.user.deleteMany();

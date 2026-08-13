@@ -37,6 +37,24 @@ export async function POST(
       return NextResponse.json({ error: "Sender ID and content are required" }, { status: 400 });
     }
 
+    // 1. Fetch sender user details
+    const sender = await prisma.user.findUnique({
+      where: { id: senderId }
+    });
+
+    if (!sender) {
+      return NextResponse.json({ error: "Sender user not found" }, { status: 404 });
+    }
+
+    // 2. Validate cryptographic signature
+    const signature = request.headers.get("x-signature") || body.signature;
+    const messageChallenge = `send-message:${roomId}:${content}`;
+    
+    const { verifySignature } = await import("@/lib/ckb/auth");
+    if (!signature || !(await verifySignature(messageChallenge, signature, sender.joyIdAddress))) {
+      return NextResponse.json({ error: "Cryptographic signature verification failed" }, { status: 401 });
+    }
+
     const message = await prisma.chatMessage.create({
       data: {
         roomId,

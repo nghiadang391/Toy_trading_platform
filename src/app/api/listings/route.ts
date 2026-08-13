@@ -69,6 +69,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
+    // 1. Fetch user's registered JoyID address
+    const user = await prisma.user.findUnique({
+      where: { id: sellerId }
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // 2. Extract and verify signature
+    const signature = request.headers.get("x-signature") || body.signature;
+    const message = `create-listing:${title}:${priceFiat}`;
+    
+    const { verifySignature } = await import("@/lib/ckb/auth");
+    if (!signature || !(await verifySignature(message, signature, user.joyIdAddress))) {
+      return NextResponse.json({ error: "Cryptographic signature verification failed" }, { status: 401 });
+    }
+
     // Run Safety Recall Check
     const { checkToySafety } = await import("@/lib/safety/recall-checker");
     const safetyResult = checkToySafety(title, description);

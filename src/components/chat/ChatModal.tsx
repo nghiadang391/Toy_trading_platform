@@ -38,17 +38,42 @@ export default function ChatModal({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { t } = useLanguage();
 
+  const [buyerAddress, setBuyerAddress] = useState<string | null>(null);
+
+  // Fetch buyer JoyID address for signing requests
+  useEffect(() => {
+    if (!isOpen || !buyerId) return;
+    async function fetchBuyer() {
+      try {
+        const res = await fetch(`/api/users/${buyerId}`);
+        const data = await res.json();
+        if (res.ok && data.joyIdAddress) {
+          setBuyerAddress(data.joyIdAddress);
+        }
+      } catch (err) {
+        console.error("Failed to fetch buyer details:", err);
+      }
+    }
+    fetchBuyer();
+  }, [isOpen, buyerId]);
+
   // Initialize or fetch the ChatRoom
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !buyerAddress) return;
     setRoom(null);
     setMessages([]);
 
     async function initChatRoom() {
       try {
+        const message = `create-room:${buyerId}:${sellerId}`;
+        const signature = `mock-sig-${buyerAddress}`;
+
         const res = await fetch("/api/chat/rooms", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "x-signature": signature,
+          },
           body: JSON.stringify({
             listingId,
             buyerId,
@@ -65,7 +90,7 @@ export default function ChatModal({
     }
 
     initChatRoom();
-  }, [isOpen, listingId, buyerId, sellerId]);
+  }, [isOpen, listingId, buyerId, sellerId, buyerAddress]);
 
   // Poll for new messages every 3 seconds when room is ready
   useEffect(() => {
@@ -95,12 +120,18 @@ export default function ChatModal({
   }, [messages]);
 
   async function sendMsg(content: string) {
-    if (!content.trim() || !room?.id) return;
+    if (!content.trim() || !room?.id || !buyerAddress) return;
 
     try {
+      const messageChallenge = `send-message:${room.id}:${content}`;
+      const signature = `mock-sig-${buyerAddress}`;
+
       const res = await fetch(`/api/chat/rooms/${room.id}/messages`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "x-signature": signature,
+        },
         body: JSON.stringify({
           senderId: buyerId,
           content,

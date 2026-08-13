@@ -48,6 +48,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Buyer and Seller IDs are required" }, { status: 400 });
     }
 
+    // 1. Fetch buyer registered address
+    const buyer = await prisma.user.findUnique({
+      where: { id: buyerId }
+    });
+
+    if (!buyer) {
+      return NextResponse.json({ error: "Buyer user not found" }, { status: 404 });
+    }
+
+    // 2. Extract and verify signature
+    const signature = request.headers.get("x-signature") || body.signature;
+    const message = `create-room:${buyerId}:${sellerId}`;
+    
+    const { verifySignature } = await import("@/lib/ckb/auth");
+    if (!signature || !(await verifySignature(message, signature, buyer.joyIdAddress))) {
+      return NextResponse.json({ error: "Cryptographic signature verification failed" }, { status: 401 });
+    }
+
     // Try to find an existing room for this listing and buyer/seller combination
     let room = await prisma.chatRoom.findFirst({
       where: {

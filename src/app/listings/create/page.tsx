@@ -58,6 +58,9 @@ export default function CreateListingPage() {
       });
       const user = await userRes.json();
 
+      const message = `create-listing:${title}:${parseFloat(priceFiat)}`;
+      const signature = `mock-sig-0xdummyjoyidaddressfrompasskeysignin`;
+
       const res = await fetch("/api/listings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -73,6 +76,7 @@ export default function CreateListingPage() {
           shippingRegion,
           location,
           sellerId: user.id,
+          signature,
         }),
       });
 
