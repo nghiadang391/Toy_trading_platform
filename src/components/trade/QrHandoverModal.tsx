@@ -251,6 +251,10 @@ export default function QrHandoverModal({
               </button>
             </form>
           )}
+
+          <div className="modal-footer-brand">
+            <span>Powered by Fiber Network & CKB</span>
+          </div>
         </div>
       </div>
 
@@ -483,6 +487,17 @@ export default function QrHandoverModal({
           border-radius: 8px;
           cursor: pointer;
           font-size: 0.95rem;
+        }
+        .modal-footer-brand {
+          margin-top: 16px;
+          padding-top: 12px;
+          border-top: 1px solid rgba(255, 255, 255, 0.08);
+          text-align: center;
+        }
+        .modal-footer-brand span {
+          font-size: 0.72rem;
+          color: rgba(255, 255, 255, 0.4);
+          letter-spacing: 0.02em;
         }
       `}</style>
     </div>
