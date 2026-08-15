@@ -85,7 +85,23 @@ export default function ListingsPage() {
           {listings.map((item) => (
             <div key={item.id} className="card">
               {item.imageUrls && item.imageUrls.length > 0 ? (
-                <img src={item.imageUrls[0]} alt={item.title} className="card-image" />
+                item.imageUrls[0].startsWith("data:video/") ||
+                item.imageUrls[0].endsWith(".mp4") ||
+                item.imageUrls[0].endsWith(".webm") ? (
+                  <video
+                    src={item.imageUrls[0]}
+                    className="card-image"
+                    controls
+                    muted
+                    playsInline
+                  />
+                ) : (
+                  <img
+                    src={item.imageUrls[0]}
+                    alt={item.title}
+                    className="card-image"
+                  />
+                )
               ) : (
                 <div className="card-image-placeholder">🧸</div>
               )}
