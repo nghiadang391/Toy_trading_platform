@@ -3,10 +3,11 @@ node_modules/
 /target/
 /contracts/*/target/
 
-# Next.js Build Outputs
+# Build & TypeScript caches
 .next/
 out/
 next-env.d.ts
+*.tsbuildinfo
 
 # Secrets & Local Environment Variables
 .env
@@ -21,6 +22,8 @@ next-env.d.ts
 .windsurf/
 .vscode/
 .idea/
+AGENTS.md
+CLAUDE.md
 *.suo
 *.ntvs*
 *.njsproj
@@ -29,7 +32,8 @@ next-env.d.ts
 
 # Project-specific ignores
 implementation_plan.md
-generate_deck.sh
+task.md
+.vercel
 
 # Local development database
 *.db

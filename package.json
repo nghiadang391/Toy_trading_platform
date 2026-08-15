@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "npm run clean-port && next dev",
-    "build": "next build",
+    "build": "prisma db push && ts-node prisma/seed.ts && next build",
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate",

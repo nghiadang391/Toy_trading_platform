@@ -6,9 +6,10 @@ ToyTrade is a peer-to-peer toy exchange platform that helps parents swap outgrow
 
 ## ✨ Key Features
 
+- **⚡ Fiber Network Instant Settlement**: Sub-second Layer 2 payment settlement for in-person meetup handovers with automatic Layer 1 Escrow fallback.
 - **🔑 JoyID Passkey Integration**: Log in seamlessly using device biometrics (Fingerprint / FaceID / Windows Hello) without managing 12-word seed phrases.
 - **💬 P2P Parent Chat**: Buyers and sellers can message each other directly through a real-time in-app chat to coordinate trades.
-- **📱 QR Code Meetup Handover**: Generate a 1-time dynamic QR code for local meetups. Sellers scan the code to instantly settle 2-of-2 CKB escrow and transfer the Toy Passport on the spot.
+- **📱 QR Code Meetup Handover**: Generate a 1-time dynamic QR code for local meetups. Sellers scan the code to instantly settle payments and transfer the Toy Passport on the spot.
 - **🛡️ Automated Safety Recall Checker**: Real-time validation checking toy titles against official safety hazard databases (CPSC / EU Safety Gate) during listing creation to block recalled toys.
 - **📜 Spore DOB Toy Passport & Timeline**: Immutable on-chain digital passports tracking a toy's condition history, previous owners, verified parent ratings, and CKB outpoints.
 - **💰 Three-Price Market Transparency**: Real-time side-by-side display comparing the Seller's price (£/₫), Google Lens market reference, and live CKB settlement cost.
@@ -22,6 +23,7 @@ ToyTrade is a peer-to-peer toy exchange platform that helps parents swap outgrow
 - **Frontend & App Router**: Next.js 16 (React 19), Vanilla CSS
 - **Database & ORM**: SQLite via Prisma ORM (libsql driver adapter)
 - **Blockchain**: Nervos CKB (Testnet), CKB CCC Core SDK
+- **Layer 2 Payment Channels**: Fiber Network (FNN JSON-RPC)
 - **Passkeys & Wallet**: JoyID CKB SDK (`@joyid/ckb`)
 - **Digital Objects (DOB)**: Spore Protocol (`@spore-sdk/core`)
 
