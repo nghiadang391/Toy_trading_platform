@@ -12,13 +12,14 @@ interface LanguageContextType {
 
 const translations: Record<Language, Record<string, string>> = {
   en: {
-    // Navbar
+    // Navbar & Footer
     browseToys: "Browse Toys",
     sellAToy: "Sell a Toy",
     messages: "Messages",
     fingerprintConnect: "Fingerprint Connect",
     connecting: "Connecting...",
     connected: "Connected",
+    brandAssets: "Brand Assets",
 
     // Home Page
     heroTitle: "Trade Kids' Toys Securely with CKB Escrow",
@@ -114,13 +115,14 @@ const translations: Record<Language, Record<string, string>> = {
     cond_DAMAGED: "Damaged",
   },
   vi: {
-    // Navbar
+    // Navbar & Footer
     browseToys: "Mua đồ chơi",
     sellAToy: "Đăng thanh lý",
     messages: "Tin nhắn",
     fingerprintConnect: "Đăng nhập bằng vân tay",
     connecting: "Đang kết nối...",
     connected: "Đã kết nối",
+    brandAssets: "Tư liệu truyền thông",
 
     // Home Page
     heroTitle: "Trao đổi đồ chơi cũ an toàn qua CKB Escrow",
