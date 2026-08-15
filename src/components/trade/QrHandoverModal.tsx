@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useLanguage } from "@/lib/LanguageContext";
 
 interface QrHandoverModalProps {
   tradeId: string;
@@ -9,10 +10,21 @@ interface QrHandoverModalProps {
   onSuccess?: () => void;
 }
 
-export default function QrHandoverModal({ tradeId, isOpen, onClose, onSuccess }: QrHandoverModalProps) {
+export default function QrHandoverModal({
+  tradeId,
+  isOpen,
+  onClose,
+  onSuccess,
+}: QrHandoverModalProps) {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<"SHOW_QR" | "SCAN_QR">("SHOW_QR");
+  const [paymentMode, setPaymentMode] = useState<"FIBER" | "CKB_L1">("FIBER");
+  const [isFallbackActive, setIsFallbackActive] = useState(false);
+
+  // Fiber invoice & L1 token states
+  const [fiberData, setFiberData] = useState<any>(null);
   const [tokenData, setTokenData] = useState<any>(null);
-  const [inputToken, setInputToken] = useState("");
+  const [inputCode, setInputCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -21,9 +33,37 @@ export default function QrHandoverModal({ tradeId, isOpen, onClose, onSuccess }:
     if (!isOpen || !tradeId) return;
     setMessage(null);
     setError(null);
+    setIsFallbackActive(false);
+    setPaymentMode("FIBER");
 
-    // Auto-generate QR Token for Buyer view
-    async function generateToken() {
+    // Primary: Attempt Instant Handover via Fiber
+    async function loadHandoverData() {
+      try {
+        const res = await fetch("/api/fiber/invoice", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tradeId }),
+        });
+        const data = await res.json();
+
+        if (res.ok && data.success && !data.useFallback) {
+          setFiberData(data);
+          setPaymentMode("FIBER");
+        } else {
+          // Trigger smooth fallback to Standard Handover (L1)
+          setIsFallbackActive(true);
+          setPaymentMode("CKB_L1");
+          loadL1Token();
+        }
+      } catch (err) {
+        console.warn("Fiber invoice init failed, falling back to L1:", err);
+        setIsFallbackActive(true);
+        setPaymentMode("CKB_L1");
+        loadL1Token();
+      }
+    }
+
+    async function loadL1Token() {
       try {
         const res = await fetch(`/api/trades/${tradeId}/qr`);
         const data = await res.json();
@@ -31,39 +71,61 @@ export default function QrHandoverModal({ tradeId, isOpen, onClose, onSuccess }:
           setTokenData(data);
         }
       } catch (err) {
-        console.error("Failed to generate QR token:", err);
+        console.error("Failed to load L1 token:", err);
       }
     }
-    generateToken();
+
+    loadHandoverData();
   }, [isOpen, tradeId]);
 
   async function handleVerifyScan(e: React.FormEvent) {
     e.preventDefault();
-    if (!inputToken) return;
+    if (!inputCode) return;
 
     setLoading(true);
     setError(null);
     setMessage(null);
 
     try {
-      const res = await fetch(`/api/trades/${tradeId}/qr`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          token: inputToken,
-          sellerAddress: "0xdummyjoyidaddressfrompasskeysignin",
-        }),
-      });
+      if (paymentMode === "FIBER") {
+        // Settle Fiber payment
+        const res = await fetch("/api/fiber/pay", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tradeId,
+            invoice: inputCode,
+          }),
+        });
 
-      const data = await res.json();
-      if (res.ok) {
-        setMessage(data.message);
-        if (onSuccess) onSuccess();
+        const data = await res.json();
+        if (res.ok && data.success) {
+          setMessage(t("handoverSuccess"));
+          if (onSuccess) onSuccess();
+        } else {
+          setError(data.error || "Fiber payment verification failed");
+        }
       } else {
-        setError(data.error || "Verification failed");
+        // Settle standard L1 token
+        const res = await fetch(`/api/trades/${tradeId}/qr`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            token: inputCode,
+            sellerAddress: "0xdummyjoyidaddressfrompasskeysignin",
+          }),
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          setMessage(data.message || t("handoverSuccess"));
+          if (onSuccess) onSuccess();
+        } else {
+          setError(data.error || "Verification failed");
+        }
       }
     } catch (err: any) {
-      setError(err.message || "Failed to process QR scan verification");
+      setError(err.message || "Failed to process verification");
     } finally {
       setLoading(false);
     }
@@ -71,26 +133,47 @@ export default function QrHandoverModal({ tradeId, isOpen, onClose, onSuccess }:
 
   if (!isOpen) return null;
 
+  const currentDisplayCode =
+    paymentMode === "FIBER"
+      ? fiberData?.invoice || "Loading Fiber Invoice..."
+      : tokenData?.token || "Generating Token...";
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>📱 Meetup QR Handover</h2>
-          <button className="close-btn" onClick={onClose}>✕</button>
+          <div className="header-title-group">
+            <h2>{t("handoverTitle")}</h2>
+            <span className={`engine-badge ${paymentMode}`}>
+              {paymentMode === "FIBER"
+                ? t("instantHandover")
+                : t("standardHandover")}
+            </span>
+          </div>
+          <button className="close-btn" onClick={onClose}>
+            ✕
+          </button>
         </div>
+
+        {/* Fallback Notice Banner */}
+        {isFallbackActive && (
+          <div className="fallback-banner">
+            <p>{t("switchingToFallback")}</p>
+          </div>
+        )}
 
         <div className="tabs">
           <button
             className={`tab ${activeTab === "SHOW_QR" ? "active" : ""}`}
             onClick={() => setActiveTab("SHOW_QR")}
           >
-            Buyer (Show QR)
+            {t("buyerShowQr")}
           </button>
           <button
             className={`tab ${activeTab === "SCAN_QR" ? "active" : ""}`}
             onClick={() => setActiveTab("SCAN_QR")}
           >
-            Seller (Scan/Verify)
+            {t("sellerScanVerify")}
           </button>
         </div>
 
@@ -98,50 +181,65 @@ export default function QrHandoverModal({ tradeId, isOpen, onClose, onSuccess }:
           {activeTab === "SHOW_QR" ? (
             <div className="qr-container">
               <p className="hint">
-                Show this 1-time handover QR code to the seller at your meetup to complete CKB escrow.
+                {paymentMode === "FIBER"
+                  ? t("instantHandoverHint")
+                  : t("standardHandoverHint")}
               </p>
 
               <div className="qr-box">
-                {/* SVG Mock QR Visual representation */}
                 <div className="qr-code-graphic">
                   <div className="qr-corner top-left"></div>
                   <div className="qr-corner top-right"></div>
                   <div className="qr-corner bottom-left"></div>
-                  <span className="qr-center-text">CKB</span>
+                  <span className="qr-center-text">
+                    {paymentMode === "FIBER" ? "FIBER" : "CKB"}
+                  </span>
                 </div>
               </div>
 
               <div className="token-display">
-                <span className="label">Handover Token:</span>
-                <span className="token-code">{tokenData?.token || "Generating..."}</span>
+                <span className="label">
+                  {paymentMode === "FIBER"
+                    ? t("invoiceLabel")
+                    : t("tokenLabel")}
+                </span>
+                <span className="token-code">{currentDisplayCode}</span>
               </div>
-              <span className="expiry">Expires in 30 minutes</span>
+              <span className="expiry">{t("expiryHint")}</span>
             </div>
           ) : (
             <form onSubmit={handleVerifyScan} className="scan-container">
               <p className="hint">
-                Scan or enter the Buyer's 1-time Handover Token to confirm physical delivery and trigger CKB payout.
+                {paymentMode === "FIBER"
+                  ? "Scan or enter the Buyer's Fiber Invoice to settle instantly."
+                  : "Scan or enter the Buyer's Handover Token to confirm delivery."}
               </p>
 
               <div className="form-group">
-                <label htmlFor="qrTokenInput">Handover Token Code</label>
+                <label htmlFor="codeScanInput">
+                  {paymentMode === "FIBER" ? t("invoiceLabel") : t("tokenLabel")}
+                </label>
                 <input
                   type="text"
-                  id="qrTokenInput"
-                  value={inputToken}
-                  onChange={(e) => setInputToken(e.target.value)}
-                  placeholder="e.g. QR_HANDOVER_A1B2C3D4"
+                  id="codeScanInput"
+                  value={inputCode}
+                  onChange={(e) => setInputCode(e.target.value)}
+                  placeholder={
+                    paymentMode === "FIBER"
+                      ? "fbr_invoice_..."
+                      : "QR_HANDOVER_..."
+                  }
                   required
                 />
               </div>
 
-              {tokenData?.token && (
+              {currentDisplayCode && !currentDisplayCode.startsWith("Loading") && !currentDisplayCode.startsWith("Generating") && (
                 <button
                   type="button"
                   className="quick-fill-btn"
-                  onClick={() => setInputToken(tokenData.token)}
+                  onClick={() => setInputCode(currentDisplayCode)}
                 >
-                  ⚡ Auto-fill Active Token (Demo Mode)
+                  Auto-fill Active Code (Demo Mode)
                 </button>
               )}
 
@@ -149,7 +247,7 @@ export default function QrHandoverModal({ tradeId, isOpen, onClose, onSuccess }:
               {message && <div className="alert success">{message}</div>}
 
               <button type="submit" className="submit-btn" disabled={loading}>
-                {loading ? "Verifying CKB Escrow..." : "Confirm Handover & Release CKB"}
+                {loading ? t("verifying") : t("verifyAndComplete")}
               </button>
             </form>
           )}
@@ -186,9 +284,46 @@ export default function QrHandoverModal({ tradeId, isOpen, onClose, onSuccess }:
           align-items: center;
           margin-bottom: 16px;
         }
+        .header-title-group {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
         h2 {
-          font-size: 1.3rem;
-          font-weight: 800;
+          font-size: 1.25rem;
+          font-weight: 700;
+          margin: 0;
+        }
+        .engine-badge {
+          font-size: 0.72rem;
+          padding: 3px 8px;
+          border-radius: 6px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+        .engine-badge.FIBER {
+          background: rgba(0, 255, 135, 0.15);
+          color: #00ff87;
+          border: 1px solid rgba(0, 255, 135, 0.3);
+        }
+        .engine-badge.CKB_L1 {
+          background: rgba(96, 239, 255, 0.15);
+          color: #60efff;
+          border: 1px solid rgba(96, 239, 255, 0.3);
+        }
+        .fallback-banner {
+          background: rgba(255, 193, 7, 0.12);
+          border: 1px solid rgba(255, 193, 7, 0.3);
+          border-radius: 8px;
+          padding: 10px 14px;
+          margin-bottom: 16px;
+        }
+        .fallback-banner p {
+          margin: 0;
+          font-size: 0.8rem;
+          line-height: 1.4;
+          color: #ffc107;
         }
         .close-btn {
           background: none;
@@ -215,6 +350,7 @@ export default function QrHandoverModal({ tradeId, isOpen, onClose, onSuccess }:
           font-weight: 600;
           border-radius: 6px;
           cursor: pointer;
+          transition: all 0.2s;
         }
         .tab.active {
           background: #00ff87;
@@ -264,25 +400,34 @@ export default function QrHandoverModal({ tradeId, isOpen, onClose, onSuccess }:
         .qr-center-text {
           font-weight: 900;
           color: #0a0a0a;
-          font-size: 1.2rem;
-          letter-spacing: 0.1em;
+          font-size: 1.1rem;
+          letter-spacing: 0.05em;
         }
         .token-display {
           display: flex;
           flex-direction: column;
           align-items: center;
           gap: 4px;
+          width: 100%;
+          text-align: center;
+        }
+        .label {
+          font-size: 0.75rem;
+          color: rgba(255, 255, 255, 0.5);
+          text-transform: uppercase;
         }
         .token-code {
           font-family: monospace;
-          font-size: 1rem;
+          font-size: 0.85rem;
           color: #60efff;
           font-weight: 700;
+          word-break: break-all;
+          max-width: 90%;
         }
         .expiry {
           font-size: 0.75rem;
           color: rgba(255, 255, 255, 0.4);
-          margin-top: 4px;
+          margin-top: 6px;
         }
         .scan-container {
           display: flex;
@@ -305,7 +450,7 @@ export default function QrHandoverModal({ tradeId, isOpen, onClose, onSuccess }:
           padding: 12px;
           border-radius: 8px;
           font-family: monospace;
-          font-size: 0.95rem;
+          font-size: 0.9rem;
         }
         .quick-fill-btn {
           background: rgba(96, 239, 255, 0.1);
@@ -337,6 +482,7 @@ export default function QrHandoverModal({ tradeId, isOpen, onClose, onSuccess }:
           font-weight: 700;
           border-radius: 8px;
           cursor: pointer;
+          font-size: 0.95rem;
         }
       `}</style>
     </div>

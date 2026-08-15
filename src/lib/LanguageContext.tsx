@@ -63,6 +63,22 @@ const translations: Record<Language, Record<string, string>> = {
     suggestion1: "Is this item still available?",
     suggestion2: "Can you send more photos?",
     suggestion3: "Where can we meet?",
+
+    // Handover Modal
+    handoverTitle: "Meetup Handover",
+    buyerShowQr: "Buyer (Show QR)",
+    sellerScanVerify: "Seller (Scan/Verify)",
+    instantHandover: "Instant Handover",
+    standardHandover: "Standard Handover",
+    instantHandoverHint: "Show this instant invoice QR code to the seller at your meetup to complete payment in sub-second.",
+    standardHandoverHint: "Show this 1-time handover token QR to the seller at your meetup to complete standard escrow.",
+    switchingToFallback: "Instant route unavailable. Switched to Standard Handover. Processing may take a few moments—thank you for your patience.",
+    tokenLabel: "Handover Token:",
+    invoiceLabel: "Fiber Invoice:",
+    expiryHint: "Expires in 30 minutes",
+    verifyAndComplete: "Verify and Complete Handover",
+    verifying: "Verifying...",
+    handoverSuccess: "Handover completed successfully! Toy Passport transferred.",
   },
   vi: {
     // Navbar
@@ -116,6 +132,22 @@ const translations: Record<Language, Record<string, string>> = {
     suggestion1: "Sản phẩm này còn không ạ?",
     suggestion2: "Bạn có thể chụp thêm ảnh không?",
     suggestion3: "Địa chỉ giao dịch ở đâu vậy bạn?",
+
+    // Handover Modal
+    handoverTitle: "Bàn giao tại điểm hẹn",
+    buyerShowQr: "Người mua (Hiện mã QR)",
+    sellerScanVerify: "Người bán (Quét/Xác nhận)",
+    instantHandover: "Giao dịch tức thì",
+    standardHandover: "Giao dịch tiêu chuẩn",
+    instantHandoverHint: "Đưa mã QR thanh toán tức thì này cho người bán quét tại điểm hẹn để hoàn tất giao dịch trong tích tắc.",
+    standardHandoverHint: "Đưa mã xác thực này cho người bán quét tại điểm hẹn để hoàn tất ký quỹ tiêu chuẩn.",
+    switchingToFallback: "Kênh tức thì tạm bận. Đã tự động chuyển sang Giao dịch tiêu chuẩn. Quá trình xử lý có thể mất thêm ít phút, vui lòng kiên nhẫn đợi trong giây lát.",
+    tokenLabel: "Mã xác thực:",
+    invoiceLabel: "Mã hóa đơn Fiber:",
+    expiryHint: "Có hiệu lực trong 30 phút",
+    verifyAndComplete: "Xác nhận và Hoàn tất bàn giao",
+    verifying: "Đang xác thực...",
+    handoverSuccess: "Giao dịch thành công tức thì! Đã chuyển giao thông tin đồ chơi.",
   },
 };
 

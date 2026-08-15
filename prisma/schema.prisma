@@ -63,6 +63,10 @@ model Trade {
   priceCkb        BigInt                      // CKB amount (in shannons) at trade time
   exchangeRate    Decimal                     // CKB/USD rate at trade initiation
   method          TradeMethod                 // MEETUP or SHIPPING
+  paymentEngine   PaymentEngine @default(FIBER)
+  fiberInvoice    String?
+  fiberPaymentHash String?
+  fiberPreimage   String?
   trackingNumber  String?                     // For shipping trades
   escrowTxHash    String?                     // CKB escrow transaction hash
   escrowCellOutpoint String?                  // Outpoint of the escrow Cell
@@ -181,4 +185,9 @@ enum TradeStatus {
   COMPLETED
   EXPIRED
   DISPUTED
+}
+
+enum PaymentEngine {
+  FIBER
+  CKB_L1
 }
