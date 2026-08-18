@@ -3,42 +3,12 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useLanguage } from "@/lib/LanguageContext";
+import { useUser } from "@/lib/UserContext";
 
 export default function Navbar() {
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
-  const [connecting, setConnecting] = useState(false);
+  const { user, connecting, connectWallet, disconnectWallet } = useUser();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { language, setLanguage, t } = useLanguage();
-
-  async function connectWallet() {
-    setConnecting(true);
-    try {
-      const { initConfig, connect } = await import("@joyid/ckb");
-      initConfig({
-        name: "ToyTrade",
-        logo: "https://toytrade.vercel.app/logo.png",
-        joyidAppURL: "https://testnet.joyid.dev",
-      });
-
-      const res = await connect();
-      if (res && res.address) {
-        setWalletAddress(res.address);
-        await fetch("/api/users", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            joyIdAddress: res.address,
-            displayName: "Passkey Explorer " + res.address.substring(res.address.length - 4),
-            region: language === "vi" ? "VIETNAM" : "UK",
-          }),
-        });
-      }
-    } catch (err) {
-      console.error("JoyID Connection failed:", err);
-    } finally {
-      setConnecting(false);
-    }
-  }
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-white/10 bg-black/85 backdrop-blur-md font-sans">
@@ -86,16 +56,29 @@ export default function Navbar() {
             </button>
           </div>
 
-          {/* JoyID Connect Button */}
+          {/* JoyID Connect / Profile Badge */}
           <div>
-            {walletAddress ? (
-              <span className="inline-flex items-center rounded-lg border border-white/15 bg-white/5 px-4 py-2 text-xs font-medium text-white">
-                🔑 {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
-              </span>
+            {user ? (
+              <div className="flex items-center gap-2">
+                <span 
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-white"
+                  title={user.joyIdAddress}
+                >
+                  <span className="w-2 h-2 rounded-full bg-[#00ff87] animate-pulse"></span>
+                  <span>{user.displayName || `🔑 ${user.joyIdAddress.slice(0, 6)}...${user.joyIdAddress.slice(-4)}`}</span>
+                </span>
+                <button
+                  onClick={disconnectWallet}
+                  className="text-xs text-white/40 hover:text-red-400 p-1 transition-colors"
+                  title="Disconnect Passkey"
+                >
+                  ✕
+                </button>
+              </div>
             ) : (
               <button 
                 className="rounded-lg bg-gradient-to-r from-[#00ff87] to-[#60efff] px-4 py-2 text-sm font-bold text-black hover:opacity-90 active:scale-95 transition-all disabled:opacity-50"
-                onClick={connectWallet} 
+                onClick={() => connectWallet()} 
                 disabled={connecting}
               >
                 {connecting ? t("connecting") : t("fingerprintConnect")}
@@ -173,15 +156,27 @@ export default function Navbar() {
           </div>
 
           <div className="pt-2 border-t border-white/10">
-            {walletAddress ? (
-              <div className="w-full flex items-center justify-center rounded-lg border border-white/15 bg-white/5 py-3 text-xs font-medium text-white">
-                🔑 {walletAddress.slice(0, 8)}...{walletAddress.slice(-6)}
+            {user ? (
+              <div className="flex items-center justify-between rounded-lg border border-white/15 bg-white/5 px-4 py-3 text-xs font-medium text-white">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#00ff87]"></span>
+                  <span>{user.displayName || `🔑 ${user.joyIdAddress.slice(0, 6)}...`}</span>
+                </div>
+                <button
+                  onClick={() => {
+                    disconnectWallet();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="text-xs text-red-400 hover:underline"
+                >
+                  Disconnect
+                </button>
               </div>
             ) : (
               <button 
                 className="w-full rounded-lg bg-gradient-to-r from-[#00ff87] to-[#60efff] py-3 text-sm font-bold text-black hover:opacity-90 active:scale-95 transition-all disabled:opacity-50 shadow-lg shadow-[#00ff87]/10"
-                onClick={() => {
-                  connectWallet();
+                onClick={async () => {
+                  await connectWallet();
                   setMobileMenuOpen(false);
                 }} 
                 disabled={connecting}

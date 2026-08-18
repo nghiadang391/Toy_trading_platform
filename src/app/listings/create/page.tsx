@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/lib/LanguageContext";
+import { useUser } from "@/lib/UserContext";
 
 interface MediaItem {
   url: string;
@@ -13,6 +14,7 @@ interface MediaItem {
 export default function CreateListingPage() {
   const router = useRouter();
   const { t } = useLanguage();
+  const { user, connectWallet } = useUser();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -135,20 +137,17 @@ export default function CreateListingPage() {
 
     setSubmitting(true);
     try {
-      // Mock JoyID registry sync setup:
-      const userRes = await fetch("/api/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          joyIdAddress: "0xdummyjoyidaddressfrompasskeysignin",
-          displayName: "Passkey Collector",
-          region: shippingRegion,
-        }),
-      });
-      const user = await userRes.json();
+      let activeUser = user;
+      if (!activeUser) {
+        activeUser = await connectWallet();
+        if (!activeUser) {
+          setSubmitting(false);
+          return;
+        }
+      }
 
       const message = `create-listing:${title}:${parseFloat(priceFiat)}`;
-      const signature = `mock-sig-0xdummyjoyidaddressfrompasskeysignin`;
+      const signature = `mock-sig-${activeUser.joyIdAddress}`;
 
       const imageUrls = mediaList.map((m) => m.url);
 
@@ -166,7 +165,7 @@ export default function CreateListingPage() {
           tradeMethod,
           shippingRegion,
           location,
-          sellerId: user.id,
+          sellerId: activeUser.id,
           signature,
         }),
       });

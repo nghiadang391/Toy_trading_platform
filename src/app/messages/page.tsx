@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
+import { useUser } from "@/lib/UserContext";
 
 interface Message {
   id: string;
@@ -23,6 +24,7 @@ interface ChatRoom {
 }
 
 export default function MessagesPage() {
+  const { user, connectWallet, connecting } = useUser();
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [activeRoom, setActiveRoom] = useState<ChatRoom | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -30,14 +32,15 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Simulated logged-in parent user ID
-  const dummyUserId = "cmslwc9bl0001oerq542iln7o";
+  // Fallback demo user ID if not logged in yet
+  const fallbackUserId = "cmslwc9bl0001oerq542iln7o";
+  const currentUserId = user?.id || fallbackUserId;
 
   // Fetch active chat rooms
   useEffect(() => {
     async function fetchRooms() {
       try {
-        const res = await fetch(`/api/chat/rooms?userId=${dummyUserId}`);
+        const res = await fetch(`/api/chat/rooms?userId=${currentUserId}`);
         const data = await res.json();
         if (Array.isArray(data)) {
           setRooms(data);
@@ -56,7 +59,7 @@ export default function MessagesPage() {
     fetchRooms();
     const interval = setInterval(fetchRooms, 6000); // refresh list every 6s
     return () => clearInterval(interval);
-  }, [dummyUserId, activeRoom]);
+  }, [currentUserId, activeRoom]);
 
   // Fetch messages for active chat room
   useEffect(() => {
@@ -95,7 +98,7 @@ export default function MessagesPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          senderId: dummyUserId,
+          senderId: currentUserId,
           content,
         }),
       });
@@ -126,7 +129,19 @@ export default function MessagesPage() {
     <div className="inbox-container">
       {/* Sidebar: Chat List */}
       <div className="sidebar">
-        <h2 className="sidebar-title">Conversations</h2>
+        <div className="sidebar-header">
+          <h2 className="sidebar-title">Conversations</h2>
+          {!user && (
+            <button 
+              onClick={() => connectWallet()} 
+              disabled={connecting}
+              className="connect-badge-btn"
+            >
+              {connecting ? "Connecting..." : "🔑 Connect JoyID"}
+            </button>
+          )}
+        </div>
+
         {loading ? (
           <div className="status-text">Loading chats...</div>
         ) : rooms.length === 0 ? (
@@ -134,7 +149,7 @@ export default function MessagesPage() {
         ) : (
           <div className="rooms-list">
             {rooms.map((room) => {
-              const isBuyer = room.buyer.id === dummyUserId;
+              const isBuyer = room.buyer.id === currentUserId;
               const partnerName = isBuyer ? room.seller.displayName : room.buyer.displayName;
               const toyTitle = room.listing?.title || "Direct Message";
               const lastMsg = room.messages?.[0]?.content || "No messages yet";
@@ -142,14 +157,18 @@ export default function MessagesPage() {
               return (
                 <button
                   key={room.id}
-                  className={`room-item ${activeRoom?.id === room.id ? "active" : ""}`}
                   onClick={() => setActiveRoom(room)}
+                  className={`room-item ${activeRoom?.id === room.id ? "active" : ""}`}
                 >
-                  <div className="room-meta">
-                    <span className="room-partner">{partnerName}</span>
-                    <span className="room-toy">{toyTitle}</span>
+                  <div className="room-avatar">🧸</div>
+                  <div className="room-info">
+                    <div className="room-header">
+                      <span className="partner-name">{partnerName}</span>
+                      <span className="role-tag">{isBuyer ? "Seller" : "Buyer"}</span>
+                    </div>
+                    <span className="room-toy-title">{toyTitle}</span>
+                    <p className="room-last-msg">{lastMsg}</p>
                   </div>
-                  <p className="room-last-msg">{lastMsg}</p>
                 </button>
               );
             })}
@@ -157,105 +176,124 @@ export default function MessagesPage() {
         )}
       </div>
 
-      {/* Main chat window */}
-      <div className="chat-window">
+      {/* Main Chat Area */}
+      <div className="chat-main">
         {activeRoom ? (
           <>
-            {/* Header */}
             <div className="chat-header">
-              <h3>
-                {activeRoom.buyer.id === dummyUserId
-                  ? activeRoom.seller.displayName
-                  : activeRoom.buyer.displayName}
-              </h3>
-              <span className="chat-toy-tag">{activeRoom.listing?.title || "General Inquiry"}</span>
+              <div>
+                <h3>{activeRoom.buyer.id === currentUserId ? activeRoom.seller.displayName : activeRoom.buyer.displayName}</h3>
+                <p>{activeRoom.listing?.title || "Direct Trade Discussion"}</p>
+              </div>
+              <Link href="/listings" className="back-link">
+                Browse More Toys →
+              </Link>
             </div>
 
-            {/* Messages body */}
-            <div className="chat-body">
+            <div className="messages-area">
               {messages.length === 0 ? (
-                <div className="chat-empty">No messages yet. Start the discussion!</div>
-              ) : (
-                <div className="messages-list">
-                  {messages.map((msg) => {
-                    const isMe = msg.senderId === dummyUserId;
-                    return (
-                      <div key={msg.id} className={`message-wrapper ${isMe ? "me" : "them"}`}>
-                        <div className="message-bubble">
-                          <p className="message-text">{msg.content}</p>
-                          <span className="message-time">
-                            {new Date(msg.createdAt).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  <div ref={messagesEndRef} />
+                <div className="no-messages">
+                  <p>No messages yet. Send a greeting to start chatting!</p>
+                  <div className="quick-suggestions">
+                    {suggestions.map((text, idx) => (
+                      <button key={idx} onClick={() => sendMsg(text)} className="suggestion-btn">
+                        {text}
+                      </button>
+                    ))}
+                  </div>
                 </div>
+              ) : (
+                messages.map((m) => {
+                  const isMe = m.senderId === currentUserId;
+                  return (
+                    <div key={m.id} className={`message-row ${isMe ? "me" : "them"}`}>
+                      <div className="message-bubble">
+                        <p className="message-text">{m.content}</p>
+                        <span className="message-time">
+                          {new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
               )}
+              <div ref={messagesEndRef} />
             </div>
 
-            {/* Quick Suggestions bar */}
-            <div className="suggestions-bar">
-              {suggestions.map((text, idx) => (
-                <button key={idx} className="suggestion-pill" onClick={() => sendMsg(text)}>
-                  {text}
-                </button>
-              ))}
-            </div>
-
-            {/* Input footer */}
-            <form onSubmit={handleSend} className="chat-footer">
+            <form onSubmit={handleSend} className="chat-input-row">
               <input
                 type="text"
+                placeholder="Type your message..."
                 value={newMsg}
                 onChange={(e) => setNewMsg(e.target.value)}
-                placeholder="Type your message here..."
+                className="message-input"
               />
-              <button type="submit" className="send-btn" disabled={!newMsg.trim()}>
-                Send
+              <button type="submit" disabled={!newMsg.trim()} className="send-btn">
+                Send ✈️
               </button>
             </form>
           </>
         ) : (
-          <div className="chat-empty-state">
-            <p>Select a conversation from the sidebar to view messages.</p>
+          <div className="no-active-room">
+            <p>Select a conversation from the left to start messaging.</p>
           </div>
         )}
       </div>
 
       <style jsx>{`
         .inbox-container {
-          display: flex;
-          height: calc(100vh - 72px);
           max-width: 1200px;
-          margin: 0 auto;
-          background: #0d0d0d;
-          border-left: 1px solid rgba(255, 255, 255, 0.08);
-          border-right: 1px solid rgba(255, 255, 255, 0.08);
+          margin: 40px auto;
+          padding: 0 20px;
+          display: grid;
+          grid-template-columns: 340px 1fr;
+          gap: 24px;
+          height: calc(100vh - 160px);
+          min-height: 550px;
           font-family: Inter, sans-serif;
         }
+        @media (max-width: 768px) {
+          .inbox-container {
+            grid-template-columns: 1fr;
+            height: auto;
+          }
+        }
         .sidebar {
-          width: 320px;
-          border-right: 1px solid rgba(255, 255, 255, 0.08);
+          background: #141a20;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 16px;
           display: flex;
           flex-direction: column;
+          overflow: hidden;
+        }
+        .sidebar-header {
+          padding: 16px 20px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
         }
         .sidebar-title {
-          font-size: 1.25rem;
-          font-weight: 800;
+          font-size: 1.15rem;
+          font-weight: 700;
           color: #ffffff;
-          padding: 24px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          margin: 0;
+        }
+        .connect-badge-btn {
+          background: rgba(0, 255, 135, 0.1);
+          border: 1px solid rgba(0, 255, 135, 0.3);
+          color: #00ff87;
+          font-size: 0.75rem;
+          font-weight: 600;
+          padding: 4px 8px;
+          border-radius: 6px;
+          cursor: pointer;
         }
         .status-text {
-          padding: 24px;
-          color: rgba(255, 255, 255, 0.4);
-          font-size: 0.9rem;
+          padding: 32px 20px;
           text-align: center;
+          font-size: 0.85rem;
+          color: rgba(255, 255, 255, 0.5);
         }
         .rooms-list {
           flex: 1;
@@ -264,190 +302,224 @@ export default function MessagesPage() {
           flex-direction: column;
         }
         .room-item {
-          padding: 16px 24px;
-          border: none;
+          display: flex;
+          gap: 12px;
+          padding: 14px 16px;
           background: none;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+          border: none;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.04);
           text-align: left;
           cursor: pointer;
           transition: background 0.2s;
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
+          color: #ffffff;
         }
         .room-item:hover {
-          background: rgba(255, 255, 255, 0.02);
+          background: rgba(255, 255, 255, 0.03);
         }
         .room-item.active {
-          background: rgba(255, 255, 255, 0.05);
+          background: rgba(0, 255, 135, 0.08);
           border-left: 3px solid #00ff87;
         }
-        .room-meta {
+        .room-avatar {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.08);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.2rem;
+          flex-shrink: 0;
+        }
+        .room-info {
+          flex: 1;
+          min-width: 0;
+        }
+        .room-header {
           display: flex;
           justify-content: space-between;
-          align-items: baseline;
+          align-items: center;
+          margin-bottom: 2px;
         }
-        .room-partner {
-          font-weight: 700;
+        .partner-name {
+          font-weight: 600;
+          font-size: 0.9rem;
           color: #ffffff;
-          font-size: 0.95rem;
-        }
-        .room-toy {
-          font-size: 0.75rem;
-          color: #60efff;
-          max-width: 120px;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
+        }
+        .role-tag {
+          font-size: 0.65rem;
+          background: rgba(255, 255, 255, 0.08);
+          padding: 2px 6px;
+          border-radius: 4px;
+          color: rgba(255, 255, 255, 0.7);
+        }
+        .room-toy-title {
+          font-size: 0.75rem;
+          color: #60efff;
+          display: block;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          margin-bottom: 4px;
         }
         .room-last-msg {
           font-size: 0.8rem;
-          color: rgba(255, 255, 255, 0.5);
+          color: rgba(255, 255, 255, 0.45);
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
+          margin: 0;
         }
-        .chat-window {
-          flex: 1;
+
+        .chat-main {
+          background: #141a20;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 16px;
           display: flex;
           flex-direction: column;
-          background: rgba(255, 255, 255, 0.01);
+          overflow: hidden;
         }
         .chat-header {
-          padding: 20px 24px;
+          padding: 16px 24px;
           border-bottom: 1px solid rgba(255, 255, 255, 0.08);
           display: flex;
           justify-content: space-between;
           align-items: center;
+          background: rgba(255, 255, 255, 0.02);
         }
         .chat-header h3 {
+          margin: 0 0 2px 0;
           font-size: 1.1rem;
-          font-weight: 800;
-          color: #ffffff;
-        }
-        .chat-toy-tag {
-          font-size: 0.75rem;
-          color: #00ff87;
-          background: rgba(0, 255, 135, 0.08);
-          border: 1px solid rgba(0, 255, 135, 0.2);
-          padding: 4px 10px;
-          border-radius: 6px;
           font-weight: 700;
         }
-        .chat-body {
+        .chat-header p {
+          margin: 0;
+          font-size: 0.8rem;
+          color: #60efff;
+        }
+        .back-link {
+          font-size: 0.85rem;
+          color: #00ff87;
+          text-decoration: none;
+        }
+        .messages-area {
           flex: 1;
+          padding: 20px;
           overflow-y: auto;
-          padding: 24px;
-          display: flex;
-          flex-direction: column;
-        }
-        .chat-empty, .chat-empty-state {
-          margin: auto;
-          color: rgba(255, 255, 255, 0.4);
-          font-size: 0.95rem;
-          text-align: center;
-        }
-        .messages-list {
           display: flex;
           flex-direction: column;
           gap: 12px;
         }
-        .message-wrapper {
-          display: flex;
-          width: 100%;
+        .no-messages {
+          text-align: center;
+          color: rgba(255, 255, 255, 0.5);
+          padding: 40px 20px;
         }
-        .message-wrapper.me {
-          justify-content: flex-end;
-        }
-        .message-wrapper.them {
-          justify-content: flex-start;
-        }
-        .message-bubble {
-          max-width: 65%;
-          padding: 10px 14px;
-          border-radius: 16px;
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-        .message-wrapper.me .message-bubble {
-          background: #00ff87;
-          color: #0a0a0a;
-          border-bottom-right-radius: 4px;
-        }
-        .message-wrapper.them .message-bubble {
-          background: rgba(255, 255, 255, 0.06);
-          color: #ffffff;
-          border-bottom-left-radius: 4px;
-          border: 1px solid rgba(255, 255, 255, 0.06);
-        }
-        .message-text {
-          font-size: 0.9rem;
-          line-height: 1.4;
-          word-break: break-word;
-        }
-        .message-time {
-          font-size: 0.7rem;
-          align-self: flex-end;
-          opacity: 0.6;
-        }
-        .suggestions-bar {
-          padding: 12px 24px;
+        .quick-suggestions {
           display: flex;
           flex-direction: column;
           gap: 8px;
-          background: rgba(255, 255, 255, 0.02);
-          border-top: 1px solid rgba(255, 255, 255, 0.05);
+          margin-top: 16px;
+          max-width: 400px;
+          margin-left: auto;
+          margin-right: auto;
         }
-        .suggestion-pill {
-          background: rgba(255, 255, 255, 0.04);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          color: #60efff;
-          padding: 8px 14px;
-          border-radius: 20px;
+        .suggestion-btn {
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          color: #ffffff;
+          padding: 8px 12px;
+          border-radius: 8px;
           font-size: 0.8rem;
-          text-align: left;
           cursor: pointer;
-          transition: background 0.2s, border-color 0.2s;
+          transition: background 0.2s;
         }
-        .suggestion-pill:hover {
-          background: rgba(96, 239, 255, 0.1);
-          border-color: #60efff;
+        .suggestion-btn:hover {
+          background: rgba(0, 255, 135, 0.1);
+          border-color: #00ff87;
         }
-        .chat-footer {
-          padding: 24px;
+        .message-row {
+          display: flex;
+        }
+        .message-row.me {
+          justify-content: flex-end;
+        }
+        .message-row.them {
+          justify-content: flex-start;
+        }
+        .message-bubble {
+          max-width: 70%;
+          padding: 10px 14px;
+          border-radius: 12px;
+          position: relative;
+        }
+        .message-row.me .message-bubble {
+          background: linear-gradient(135deg, rgba(0, 255, 135, 0.25) 0%, rgba(96, 239, 255, 0.25) 100%);
+          border: 1px solid rgba(0, 255, 135, 0.4);
+          color: #ffffff;
+          border-bottom-right-radius: 2px;
+        }
+        .message-row.them .message-bubble {
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          color: #ffffff;
+          border-bottom-left-radius: 2px;
+        }
+        .message-text {
+          margin: 0 0 4px 0;
+          font-size: 0.9rem;
+          line-height: 1.4;
+        }
+        .message-time {
+          font-size: 0.65rem;
+          color: rgba(255, 255, 255, 0.45);
+          display: block;
+          text-align: right;
+        }
+        .chat-input-row {
+          padding: 14px 20px;
           border-top: 1px solid rgba(255, 255, 255, 0.08);
           display: flex;
-          gap: 12px;
-          background: #090909;
+          gap: 10px;
+          background: rgba(255, 255, 255, 0.01);
         }
-        .chat-footer input {
+        .message-input {
           flex: 1;
-          background: rgba(255, 255, 255, 0.04);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          color: #ffffff;
-          padding: 12px 16px;
+          background: rgba(0, 0, 0, 0.4);
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          padding: 10px 14px;
           border-radius: 8px;
+          color: #ffffff;
           font-size: 0.9rem;
           outline: none;
         }
-        .chat-footer input:focus {
+        .message-input:focus {
           border-color: #00ff87;
         }
         .send-btn {
           background: linear-gradient(135deg, #00ff87 0%, #60efff 100%);
           border: none;
           color: #0a0a0a;
-          padding: 0 24px;
           font-weight: 700;
+          padding: 10px 18px;
           border-radius: 8px;
           cursor: pointer;
-          font-size: 0.9rem;
           transition: opacity 0.2s;
         }
         .send-btn:disabled {
-          opacity: 0.5;
+          opacity: 0.4;
           cursor: not-allowed;
+        }
+        .no-active-room {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          height: 100%;
+          color: rgba(255, 255, 255, 0.4);
+          font-size: 0.95rem;
         }
       `}</style>
     </div>

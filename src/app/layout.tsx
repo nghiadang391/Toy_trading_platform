@@ -4,6 +4,7 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { LanguageProvider } from "@/lib/LanguageContext";
+import { UserProvider } from "@/lib/UserContext";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -33,11 +34,13 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-black text-white">
         <LanguageProvider>
-          <ErrorBoundary>
-            <Navbar />
-            <main className="flex-1">{children}</main>
-            <Footer />
-          </ErrorBoundary>
+          <UserProvider>
+            <ErrorBoundary>
+              <Navbar />
+              <main className="flex-1">{children}</main>
+              <Footer />
+            </ErrorBoundary>
+          </UserProvider>
         </LanguageProvider>
       </body>
     </html>

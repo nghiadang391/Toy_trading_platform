@@ -7,6 +7,7 @@ import ToyPassportModal from "@/components/passport/ToyPassportModal";
 import QrHandoverModal from "@/components/trade/QrHandoverModal";
 import ChatModal from "@/components/chat/ChatModal";
 import { useLanguage } from "@/lib/LanguageContext";
+import { useUser } from "@/lib/UserContext";
 
 interface Listing {
   id: string;
@@ -36,6 +37,7 @@ export default function ListingsPage() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const { t } = useLanguage();
+  const { user, connectWallet } = useUser();
 
   // Modal State
   const [selectedPassportId, setSelectedPassportId] = useState<string | null>(null);
@@ -44,8 +46,9 @@ export default function ListingsPage() {
   // Chat Modal State
   const [selectedChatListing, setSelectedChatListing] = useState<Listing | null>(null);
 
-  // Dummy Buyer ID for MVP simulations
-  const dummyBuyerId = "cmslwc9bl0001oerq542iln7o"; // Seed user ID
+  // Fallback Buyer ID for guest preview mode if not connected
+  const fallbackBuyerId = "cmslwc9bl0001oerq542iln7o";
+  const activeBuyerId = user?.id || fallbackBuyerId;
 
   useEffect(() => {
     async function fetchListings() {
@@ -61,6 +64,14 @@ export default function ListingsPage() {
     }
     fetchListings();
   }, []);
+
+  const handleOpenChat = async (item: Listing) => {
+    if (!user) {
+      const connectedUser = await connectWallet();
+      if (!connectedUser) return;
+    }
+    setSelectedChatListing(item);
+  };
 
   return (
     <div className="container">
@@ -82,91 +93,101 @@ export default function ListingsPage() {
         </div>
       ) : (
         <div className="listings-grid">
-          {listings.map((item) => (
-            <div key={item.id} className="card">
-              {item.imageUrls && item.imageUrls.length > 0 ? (
-                item.imageUrls[0].startsWith("data:video/") ||
-                item.imageUrls[0].endsWith(".mp4") ||
-                item.imageUrls[0].endsWith(".webm") ? (
-                  <video
-                    src={item.imageUrls[0]}
-                    className="card-image"
-                    controls
-                    muted
-                    playsInline
-                  />
-                ) : (
-                  <img
-                    src={item.imageUrls[0]}
-                    alt={item.title}
-                    className="card-image"
-                  />
-                )
-              ) : (
-                <div className="card-image-placeholder">🧸</div>
-              )}
-              <div className="card-content">
-                <div className="card-header-tags">
-                  <span className="category-tag">{item.category}</span>
-                  {item.isRecalled ? (
-                    <span className="safety-tag hazard" title={item.recallReason || "Safety Warning"}>
-                      ⚠️ {t("recalled")}
-                    </span>
+          {listings.map((item) => {
+            const isOwnListing = Boolean(user && item.sellerId === user.id);
+
+            return (
+              <div key={item.id} className="card">
+                {item.imageUrls && item.imageUrls.length > 0 ? (
+                  item.imageUrls[0].startsWith("data:video/") ||
+                  item.imageUrls[0].endsWith(".mp4") ||
+                  item.imageUrls[0].endsWith(".webm") ? (
+                    <video
+                      src={item.imageUrls[0]}
+                      className="card-image"
+                      controls
+                      muted
+                      playsInline
+                    />
                   ) : (
-                    <span className="safety-tag safe">🛡️ {t("safetyChecked")}</span>
-                  )}
-                </div>
-
-                <h3>{item.title}</h3>
-                <p className="description">{item.description}</p>
-                <div className="details-row">
-                  <span>{t("method")}: <strong>{t(`method_${item.tradeMethod}`)}</strong></span>
-                  <span>{t("region")}: <strong>{item.shippingRegion || "N/A"}</strong></span>
-                </div>
-                {item.location && (
-                  <div className="location-row">
-                    📍 <span>{item.location}</span>
-                  </div>
+                    <img
+                      src={item.imageUrls[0]}
+                      alt={item.title}
+                      className="card-image"
+                    />
+                  )
+                ) : (
+                  <div className="card-image-placeholder">🧸</div>
                 )}
-                
-                {/* Embedded 3-Price Transparency component */}
-                <PriceDisplay 
-                  sellerPrice={Number(item.priceFiat)}
-                  referencePrice={item.referencePriceFiat ? Number(item.referencePriceFiat) : null}
-                  currency={item.currency}
-                />
+                <div className="card-content">
+                  <div className="card-header-tags">
+                    <span className="category-tag">{item.category}</span>
+                    {item.isRecalled ? (
+                      <span className="safety-tag hazard" title={item.recallReason || "Safety Warning"}>
+                        ⚠️ {t("recalled")}
+                      </span>
+                    ) : (
+                      <span className="safety-tag safe">🛡️ {t("safetyChecked")}</span>
+                    )}
+                  </div>
 
-                {/* Interactive Action Buttons for Toy Passport, QR Handover & Chat */}
-                <div className="card-actions">
-                  <button
-                    className="action-btn passport-btn"
-                    onClick={() => setSelectedPassportId(item.id)}
-                  >
-                    📜 {t("passportBtn")}
-                  </button>
+                  <h3>{item.title}</h3>
+                  <p className="description">{item.description}</p>
+                  <div className="details-row">
+                    <span>{t("method")}: <strong>{t(`method_${item.tradeMethod}`)}</strong></span>
+                    <span>{t("region")}: <strong>{item.shippingRegion || "N/A"}</strong></span>
+                  </div>
+                  {item.location && (
+                    <div className="location-row">
+                      📍 <span>{item.location}</span>
+                    </div>
+                  )}
+                  
+                  {/* Embedded 3-Price Transparency component */}
+                  <PriceDisplay 
+                    sellerPrice={Number(item.priceFiat)}
+                    referencePrice={item.referencePriceFiat ? Number(item.referencePriceFiat) : null}
+                    currency={item.currency}
+                  />
 
-                  <button
-                    className="action-btn qr-btn"
-                    onClick={() => setSelectedTradeId(item.trades?.[0]?.id || item.id)}
-                  >
-                    📱 {t("handoverBtn")}
-                  </button>
+                  {/* Interactive Action Buttons for Toy Passport, QR Handover & Chat */}
+                  <div className="card-actions">
+                    <button
+                      className="action-btn passport-btn"
+                      onClick={() => setSelectedPassportId(item.id)}
+                    >
+                      📜 {t("passportBtn")}
+                    </button>
 
-                  <button
-                    className="action-btn chat-btn"
-                    onClick={() => setSelectedChatListing(item)}
-                    disabled={item.sellerId === dummyBuyerId} // Can't chat with self
-                  >
-                    💬 {t("chatBtn")}
-                  </button>
-                </div>
+                    <button
+                      className="action-btn qr-btn"
+                      onClick={() => setSelectedTradeId(item.trades?.[0]?.id || item.id)}
+                    >
+                      📱 {t("handoverBtn")}
+                    </button>
 
-                <div className="footer-row">
-                  <span className="seller">{t("listedBy")} {item.seller?.displayName || "Passkey User"}</span>
+                    <button
+                      className="action-btn chat-btn"
+                      onClick={() => handleOpenChat(item)}
+                      disabled={isOwnListing}
+                      title={isOwnListing ? "This is your own listing" : "Chat with seller"}
+                    >
+                      💬 {isOwnListing ? "Your Toy" : t("chatBtn")}
+                    </button>
+                  </div>
+
+                  <div className="footer-row">
+                    <span className="seller">
+                      {t("listedBy")}{" "}
+                      <strong className="text-white">
+                        {isOwnListing ? "You" : item.seller?.displayName || "Passkey User"}
+                      </strong>
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -188,7 +209,7 @@ export default function ListingsPage() {
       {selectedChatListing && (
         <ChatModal
           listingId={selectedChatListing.id}
-          buyerId={dummyBuyerId}
+          buyerId={activeBuyerId}
           sellerId={selectedChatListing.sellerId}
           sellerName={selectedChatListing.seller.displayName}
           toyTitle={selectedChatListing.title}
@@ -385,8 +406,10 @@ export default function ListingsPage() {
           background: rgba(96, 239, 255, 0.15);
         }
         .chat-btn:disabled {
-          opacity: 0.5;
+          opacity: 0.4;
           cursor: not-allowed;
+          background: rgba(255, 255, 255, 0.05);
+          color: rgba(255, 255, 255, 0.4);
         }
         .footer-row {
           margin-top: auto;

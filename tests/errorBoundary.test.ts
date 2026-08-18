@@ -28,7 +28,7 @@ describe("ErrorBoundary Component Unit Tests", () => {
     boundary.componentDidCatch(simulatedError, { componentStack: "at CrashingComponent" });
     boundary.state = { hasError: true, error: simulatedError };
 
-    const rendered = boundary.render() as React.ReactElement;
+    const rendered = boundary.render() as React.ReactElement<{ className?: string }>;
     expect(rendered).toBeDefined();
     expect(rendered.type).toBe("div");
     expect(rendered.props.className).toContain("error-boundary-container");
