@@ -48,11 +48,11 @@ export default function Home() {
         .landing-container {
           max-width: 1200px;
           margin: 0 auto;
-          padding: 80px 24px;
+          padding: clamp(40px, 8vw, 80px) 20px;
           font-family: Inter, system-ui, sans-serif;
           display: flex;
           flex-direction: column;
-          gap: 80px;
+          gap: clamp(40px, 6vw, 80px);
         }
         .hero-section {
           text-align: center;
@@ -64,7 +64,7 @@ export default function Home() {
           gap: 24px;
         }
         .hero-title {
-          font-size: 3.5rem;
+          font-size: clamp(2.2rem, 5.5vw, 3.5rem);
           font-weight: 800;
           line-height: 1.15;
           letter-spacing: -0.03em;
@@ -76,7 +76,7 @@ export default function Home() {
           margin-left: 8px;
         }
         .hero-subtitle {
-          font-size: 1.2rem;
+          font-size: clamp(1rem, 2.5vw, 1.2rem);
           line-height: 1.6;
           color: rgba(255, 255, 255, 0.7);
         }
@@ -84,6 +84,9 @@ export default function Home() {
           display: flex;
           gap: 16px;
           margin-top: 16px;
+          flex-wrap: wrap;
+          justify-content: center;
+          width: 100%;
         }
         .primary-action-btn {
           background: linear-gradient(135deg, #00ff87 0%, #60efff 100%);
@@ -93,6 +96,7 @@ export default function Home() {
           border-radius: 8px;
           text-decoration: none;
           transition: transform 0.2s, opacity 0.2s;
+          text-align: center;
         }
         .primary-action-btn:hover {
           transform: translateY(-2px);
@@ -107,25 +111,41 @@ export default function Home() {
           border-radius: 8px;
           text-decoration: none;
           transition: transform 0.2s, background 0.2s;
+          text-align: center;
         }
         .secondary-action-btn:hover {
           transform: translateY(-2px);
           background: rgba(255, 255, 255, 0.12);
+        }
+        @media (max-width: 500px) {
+          .hero-actions {
+            flex-direction: column;
+          }
+          .primary-action-btn,
+          .secondary-action-btn {
+            width: 100%;
+          }
         }
         .features-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
           gap: 32px;
         }
+        @media (max-width: 900px) {
+          .features-grid {
+            grid-template-columns: 1fr;
+            gap: 20px;
+          }
+        }
         .feature-card {
           background: rgba(255, 255, 255, 0.03);
           border: 1px solid rgba(255, 255, 255, 0.08);
           border-radius: 16px;
-          padding: 32px;
+          padding: clamp(20px, 4vw, 32px);
           display: flex;
           flex-direction: column;
           gap: 16px;
-          transition: transform 0.2s;
+          transition: transform 0.2s, border-color 0.2s;
         }
         .feature-card:hover {
           transform: translateY(-4px);
