@@ -131,8 +131,11 @@ export default function CreateListingPage() {
     setMediaList((prev) => prev.filter((_, i) => i !== index));
   }
 
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setErrorMessage(null);
     if (!title || !priceFiat) return;
 
     setSubmitting(true);
@@ -141,6 +144,7 @@ export default function CreateListingPage() {
       if (!activeUser) {
         activeUser = await connectWallet();
         if (!activeUser) {
+          setErrorMessage("Please connect your JoyID Passkey / Fingerprint first.");
           setSubmitting(false);
           return;
         }
@@ -148,7 +152,6 @@ export default function CreateListingPage() {
 
       const message = `create-listing:${title}:${parseFloat(priceFiat)}`;
       const signature = `mock-sig-${activeUser.joyIdAddress}`;
-
       const imageUrls = mediaList.map((m) => m.url);
 
       const res = await fetch("/api/listings", {
@@ -166,15 +169,21 @@ export default function CreateListingPage() {
           shippingRegion,
           location,
           sellerId: activeUser.id,
+          joyIdAddress: activeUser.joyIdAddress,
+          displayName: activeUser.displayName,
           signature,
         }),
       });
 
+      const data = await res.json();
       if (res.ok) {
         router.push("/listings");
+      } else {
+        setErrorMessage(data?.error || "Failed to create listing. Please try again.");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Listing creation failed:", err);
+      setErrorMessage(err?.message || "An unexpected error occurred.");
     } finally {
       setSubmitting(false);
     }
@@ -186,6 +195,12 @@ export default function CreateListingPage() {
       <p className="subtitle">{t("sellSubtitle")}</p>
 
       <form onSubmit={handleSubmit}>
+        {errorMessage && (
+          <div className="alert error" style={{ padding: "12px 16px", borderRadius: "8px", marginBottom: "8px" }}>
+            ❌ {errorMessage}
+          </div>
+        )}
+
         <div className="form-group">
           <label htmlFor="title">{t("toyName")}</label>
           <input

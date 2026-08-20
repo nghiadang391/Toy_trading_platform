@@ -69,13 +69,29 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // 1. Fetch user's registered JoyID address
-    const user = await prisma.user.findUnique({
+    // 1. Fetch user's registered JoyID address, or create user if newly connected
+    let user = await prisma.user.findUnique({
       where: { id: sellerId }
     });
 
+    if (!user && body.joyIdAddress) {
+      user = await prisma.user.findUnique({
+        where: { joyIdAddress: body.joyIdAddress },
+      });
+      if (!user) {
+        user = await prisma.user.create({
+          data: {
+            id: sellerId.startsWith("usr_") ? sellerId : undefined,
+            joyIdAddress: body.joyIdAddress,
+            displayName: body.displayName || `Seller ${body.joyIdAddress.slice(-4)}`,
+            region: (shippingRegion as Region) || "UK",
+          },
+        });
+      }
+    }
+
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json({ error: "User not found. Please connect your JoyID passkey first." }, { status: 404 });
     }
 
     // 2. Extract and verify signature
