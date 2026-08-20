@@ -12,6 +12,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
+    // Normalize region value
+    const normalizedRegion: Region =
+      region === "VN" || region === "VIETNAM" ? "VIETNAM" : "UK";
+
     // Try finding existing user first, else create
     let user = await prisma.user.findUnique({
       where: { joyIdAddress },
@@ -22,7 +26,7 @@ export async function POST(request: Request) {
         data: {
           joyIdAddress,
           displayName,
-          region: (region as Region) || "UK",
+          region: normalizedRegion,
         },
       });
     }
