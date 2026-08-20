@@ -361,6 +361,10 @@ export default function CreateListingPage() {
               <option value="DOLLS">{t("cat_DOLLS")}</option>
               <option value="PUZZLES">{t("cat_PUZZLES")}</option>
               <option value="BOARD_GAMES">{t("cat_BOARD_GAMES")}</option>
+              <option value="EDUCATIONAL">{t("cat_EDUCATIONAL")}</option>
+              <option value="OUTDOOR">{t("cat_OUTDOOR")}</option>
+              <option value="VEHICLES">{t("cat_VEHICLES")}</option>
+              <option value="OTHER">{t("cat_OTHER")}</option>
             </select>
           </div>
           <div className="form-group col">
@@ -372,8 +376,8 @@ export default function CreateListingPage() {
             >
               <option value="NEW">{t("cond_NEW")}</option>
               <option value="LIKE_NEW">{t("cond_LIKE_NEW")}</option>
-              <option value="USED">{t("cond_USED")}</option>
-              <option value="DAMAGED">{t("cond_DAMAGED")}</option>
+              <option value="GOOD">{t("cond_GOOD")}</option>
+              <option value="FAIR">{t("cond_FAIR")}</option>
             </select>
           </div>
         </div>
