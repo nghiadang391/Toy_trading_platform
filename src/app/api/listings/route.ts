@@ -74,6 +74,10 @@ export async function POST(request: Request) {
       where: { id: sellerId }
     });
 
+    // Normalize region value to match Prisma enum
+    const normalizedRegion: Region =
+      shippingRegion === "VN" || shippingRegion === "VIETNAM" ? "VIETNAM" : "UK";
+
     if (!user && body.joyIdAddress) {
       user = await prisma.user.findUnique({
         where: { joyIdAddress: body.joyIdAddress },
@@ -84,7 +88,7 @@ export async function POST(request: Request) {
             id: sellerId.startsWith("usr_") ? sellerId : undefined,
             joyIdAddress: body.joyIdAddress,
             displayName: body.displayName || `Seller ${body.joyIdAddress.slice(-4)}`,
-            region: (shippingRegion as Region) || "UK",
+            region: normalizedRegion,
           },
         });
       }
@@ -121,11 +125,11 @@ export async function POST(request: Request) {
         referencePriceFiat,
         imageUrls: JSON.stringify(imageUrls || []),
         tradeMethod: tradeMethod as TradeMethod,
-        shippingRegion: shippingRegion as Region,
+        shippingRegion: normalizedRegion,
         location: location || null,
         isRecalled: safetyResult.isRecalled,
         recallReason: safetyResult.recallReason,
-        sellerId,
+        sellerId: user.id,
         status: "ACTIVE",
       },
     });

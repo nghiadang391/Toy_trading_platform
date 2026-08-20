@@ -399,7 +399,7 @@ export default function CreateListingPage() {
               onChange={(e) => setShippingRegion(e.target.value)}
             >
               <option value="UK">United Kingdom</option>
-              <option value="VN">Vietnam</option>
+              <option value="VIETNAM">Vietnam</option>
             </select>
           </div>
         </div>
