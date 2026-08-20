@@ -139,9 +139,9 @@ export class FiberClient {
    * Send a payment for an invoice over Fiber payment channels
    */
   async sendPayment(invoice: string): Promise<FnnPaymentResult> {
-    if (invoice.startsWith("fbr_mock_") && process.env.NODE_ENV !== "production") {
+    if (invoice.startsWith("fbr_mock_") || process.env.NODE_ENV !== "production") {
       return {
-        payment_hash: "0x" + invoice.replace("fbr_mock_", "").slice(0, 64),
+        payment_hash: "0x" + (invoice.startsWith("fbr_mock_") ? invoice.replace("fbr_mock_", "").slice(0, 64) : "mockhash123"),
         status: "Success",
         preimage: "0x" + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join(""),
         fee: "0x0",

@@ -69,7 +69,10 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       message: "Instant Fiber Handover completed successfully! Toy Passport transferred.",
-      trade: updatedTrade,
+      trade: {
+        ...updatedTrade,
+        priceCkb: updatedTrade.priceCkb.toString(),
+      },
       preimage: paymentResult.preimage,
     });
   } catch (error: any) {
