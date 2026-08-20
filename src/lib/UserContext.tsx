@@ -46,9 +46,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
     setConnecting(true);
     try {
       const { initConfig, connect } = await import("@joyid/ckb");
+      
+      const currentOrigin = typeof window !== "undefined" ? window.location.origin : "";
       initConfig({
         name: "ToyTrade",
-        logo: "https://toytrade.vercel.app/logo.png",
         joyidAppURL: "https://testnet.joyid.dev",
       });
 
@@ -57,27 +58,40 @@ export function UserProvider({ children }: { children: ReactNode }) {
         const defaultName = "Passkey User " + res.address.substring(res.address.length - 4);
         const region = language === "vi" ? "VIETNAM" : "UK";
 
-        // Register or retrieve user from database
-        const apiRes = await fetch("/api/users", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            joyIdAddress: res.address,
-            displayName: defaultName,
-            region,
-          }),
-        });
+        let loggedInUser: UserProfile = {
+          id: `usr_${res.address.substring(0, 10)}`,
+          joyIdAddress: res.address,
+          displayName: defaultName,
+          region,
+          avatarUrl: null,
+        };
 
-        if (apiRes.ok) {
-          const registeredUser: UserProfile = await apiRes.json();
-          setUser(registeredUser);
-          try {
-            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(registeredUser));
-          } catch (e) {
-            console.warn("Failed to persist user in localStorage:", e);
+        try {
+          // Register or retrieve user from database
+          const apiRes = await fetch("/api/users", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              joyIdAddress: res.address,
+              displayName: defaultName,
+              region,
+            }),
+          });
+
+          if (apiRes.ok) {
+            loggedInUser = await apiRes.json();
           }
-          return registeredUser;
+        } catch (dbErr) {
+          console.warn("Could not sync user with DB (using client session):", dbErr);
         }
+
+        setUser(loggedInUser);
+        try {
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(loggedInUser));
+        } catch (e) {
+          console.warn("Failed to persist user in localStorage:", e);
+        }
+        return loggedInUser;
       }
       return null;
     } catch (err) {
