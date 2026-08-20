@@ -114,17 +114,45 @@ export async function POST(request: Request) {
     // Reference price estimation mockup for MVP
     const referencePriceFiat = null;
 
+    // Robust Enum Normalization
+    const validConditions: Record<string, ToyCondition> = {
+      NEW: "NEW",
+      LIKE_NEW: "LIKE_NEW",
+      GOOD: "GOOD",
+      FAIR: "FAIR",
+      USED: "GOOD", // Map legacy "USED" -> "GOOD"
+      DAMAGED: "FAIR", // Map legacy "DAMAGED" -> "FAIR"
+    };
+    const normalizedCondition: ToyCondition = validConditions[condition] || "GOOD";
+
+    const validCategories: Record<string, ToyCategory> = {
+      ACTION_FIGURES: "ACTION_FIGURES",
+      BOARD_GAMES: "BOARD_GAMES",
+      BUILDING_SETS: "BUILDING_SETS",
+      DOLLS: "DOLLS",
+      EDUCATIONAL: "EDUCATIONAL",
+      OUTDOOR: "OUTDOOR",
+      PUZZLES: "PUZZLES",
+      VEHICLES: "VEHICLES",
+      OTHER: "OTHER",
+    };
+    const normalizedCategory: ToyCategory = validCategories[category] || "OTHER";
+
+    const normalizedCurrency: Currency = currency === "VND" ? "VND" : "GBP";
+    const normalizedTradeMethod: TradeMethod =
+      tradeMethod === "SHIPPING" ? "SHIPPING" : tradeMethod === "BOTH" ? "BOTH" : "MEETUP";
+
     const listing = await prisma.listing.create({
       data: {
         title,
         description: description || "",
-        condition: condition as ToyCondition,
-        category: category as ToyCategory,
+        condition: normalizedCondition,
+        category: normalizedCategory,
         priceFiat,
-        currency: currency as Currency,
+        currency: normalizedCurrency,
         referencePriceFiat,
         imageUrls: JSON.stringify(imageUrls || []),
-        tradeMethod: tradeMethod as TradeMethod,
+        tradeMethod: normalizedTradeMethod,
         shippingRegion: normalizedRegion,
         location: location || null,
         isRecalled: safetyResult.isRecalled,
