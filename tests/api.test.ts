@@ -3,6 +3,7 @@ import { prisma } from "../src/lib/prisma";
 describe("Backend API Data Integration Checks", () => {
   beforeAll(async () => {
     // Clear test records
+    await prisma.passportLog.deleteMany();
     await prisma.rating.deleteMany();
     await prisma.chatMessage.deleteMany();
     await prisma.chatRoom.deleteMany();
