@@ -38,3 +38,6 @@ task.md
 # Local development database
 *.db
 *.db-journal
+
+# Test & coverage artifacts
+coverage/
