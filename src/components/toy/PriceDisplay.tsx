@@ -7,22 +7,45 @@ interface PriceDisplayProps {
   sellerPrice: number;
   referencePrice: number | null;
   currency: "GBP" | "VND";
+  preloadedRate?: number | null;
 }
 
-export default function PriceDisplay({ sellerPrice, referencePrice, currency }: PriceDisplayProps) {
-  const [ckbRate, setCkbRate] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
+// Module-level client cache for instant client-side rendering
+let clientCachedRate: { rate: number; currency: string; timestamp: number } | null = null;
+
+export default function PriceDisplay({ sellerPrice, referencePrice, currency, preloadedRate }: PriceDisplayProps) {
+  const [ckbRate, setCkbRate] = useState<number | null>(() => {
+    if (typeof preloadedRate === "number") return preloadedRate;
+    if (clientCachedRate && clientCachedRate.currency === currency && Date.now() - clientCachedRate.timestamp < 60000) {
+      return clientCachedRate.rate;
+    }
+    return null;
+  });
+  const [loading, setLoading] = useState(!preloadedRate && !ckbRate);
   const { t } = useLanguage();
 
   const symbol = currency === "GBP" ? "£" : "₫";
 
   useEffect(() => {
+    if (typeof preloadedRate === "number") {
+      setCkbRate(preloadedRate);
+      setLoading(false);
+      return;
+    }
+
+    if (clientCachedRate && clientCachedRate.currency === currency && Date.now() - clientCachedRate.timestamp < 60000) {
+      setCkbRate(clientCachedRate.rate);
+      setLoading(false);
+      return;
+    }
+
     async function fetchRate() {
       try {
         const res = await fetch(`/api/price/ckb?currency=${currency}`);
         const data = await res.json();
         if (data.rate) {
           setCkbRate(data.rate);
+          clientCachedRate = { rate: data.rate, currency, timestamp: Date.now() };
         }
       } catch (err) {
         console.error("Failed to load CKB exchange rate:", err);
@@ -31,9 +54,7 @@ export default function PriceDisplay({ sellerPrice, referencePrice, currency }: 
       }
     }
     fetchRate();
-    const interval = setInterval(fetchRate, 30000); // Update every 30s
-    return () => clearInterval(interval);
-  }, [currency]);
+  }, [currency, preloadedRate]);
 
   // Calculate CKB equivalent
   const ckbAmount = ckbRate ? Math.round(sellerPrice / ckbRate) : null;
