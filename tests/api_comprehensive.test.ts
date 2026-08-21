@@ -17,6 +17,14 @@ describe("Comprehensive API & Edge Case Test Suite", () => {
   });
 
   afterAll(async () => {
+    // Clean test records created during test runs so they do not persist
+    await prisma.passportLog.deleteMany();
+    await prisma.rating.deleteMany();
+    await prisma.chatMessage.deleteMany();
+    await prisma.chatRoom.deleteMany();
+    await prisma.trade.deleteMany();
+    await prisma.listing.deleteMany();
+    await prisma.user.deleteMany();
     await prisma.$disconnect();
   });
 

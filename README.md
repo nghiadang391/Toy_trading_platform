@@ -21,7 +21,7 @@ ToyTrade is a peer-to-peer toy exchange platform that helps parents swap outgrow
 ## 🛠️ Tech Stack & Architecture
 
 - **Frontend & App Router**: Next.js 16 (React 19), Vanilla CSS
-- **Database & ORM**: SQLite via Prisma ORM (libsql driver adapter)
+- **Database & Cloud Storage**: Turso Serverless SQLite (LibSQL) via Prisma ORM (`@prisma/adapter-libsql`)
 - **Blockchain**: Nervos CKB (Testnet), CKB CCC Core SDK
 - **Layer 2 Payment Channels**: Fiber Network (FNN JSON-RPC)
 - **Passkeys & Wallet**: JoyID CKB SDK (`@joyid/ckb`)
@@ -32,15 +32,15 @@ ToyTrade is a peer-to-peer toy exchange platform that helps parents swap outgrow
 ## 🚀 Getting Started
 
 1. **Configure Environment**:
-   Copy `.env.example` to `.env` and review the settings (SQLite is pre-configured, no external DB needed):
-   ```bash
-   cp .env.example .env
+   Create a `.env` file in the project root with your Turso database credentials:
+   ```env
+   DATABASE_URL="libsql://your-database.turso.io"
+   TURSO_AUTH_TOKEN="your-turso-auth-token"
    ```
 
-2. **Sync Database Schema & Seed Sample Data**:
+2. **Sync Database Schema to Turso**:
    ```bash
-   npx prisma db push
-   npx ts-node prisma/seed.ts
+   npx ts-node scripts/sync-turso.ts
    ```
 
 3. **Start Development Server**:
@@ -48,8 +48,13 @@ ToyTrade is a peer-to-peer toy exchange platform that helps parents swap outgrow
    npm run dev
    ```
 
-4. **Launch Application**:
-   Navigate to [http://localhost:3000](http://localhost:3000) to browse and list toys.
+4. **Run Automated Test Suite**:
+   ```bash
+   npm test
+   ```
+
+5. **Launch Application**:
+   Navigate to [http://localhost:3000](http://localhost:3000) to browse and list real toys.
 
 ---
 
