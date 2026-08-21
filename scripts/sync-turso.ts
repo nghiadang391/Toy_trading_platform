@@ -4,8 +4,8 @@ import fs from "fs";
 import path from "path";
 
 async function pushToTurso() {
-  const url = process.env.DATABASE_URL;
-  const authToken = process.env.TURSO_AUTH_TOKEN;
+  const url = process.env.TARGET_DB_URL || process.env.TEST_DATABASE_URL || process.env.DATABASE_URL;
+  const authToken = process.env.TARGET_AUTH_TOKEN || process.env.TEST_TURSO_AUTH_TOKEN || process.env.TURSO_AUTH_TOKEN;
 
   if (!url || !authToken) {
     console.error("Missing DATABASE_URL or TURSO_AUTH_TOKEN in .env");
