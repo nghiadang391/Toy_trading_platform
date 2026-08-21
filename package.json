@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "npm run clean-port && next dev",
-    "build": "prisma db push && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "test": "jest",
