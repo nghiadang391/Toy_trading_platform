@@ -30,8 +30,11 @@ export async function POST(request: Request) {
     const paymentResult = await fiberClient.sendPayment(targetInvoice);
 
     if (paymentResult.status !== "Success" && !paymentResult.preimage) {
+      const { parseFiberError } = await import("@/lib/fiber/prober");
+      const parsed = parseFiberError(paymentResult.status || "Payment failed");
       return NextResponse.json({
-        error: "Fiber payment failed or pending confirmation",
+        error: parsed.suggestion || "Fiber payment failed or pending confirmation",
+        code: parsed.code,
         paymentResult,
       }, { status: 400 });
     }

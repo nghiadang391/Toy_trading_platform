@@ -34,4 +34,24 @@ describe("Fiber Network (L2) Integration Tests", () => {
     expect(health).toBeDefined();
     expect(typeof health.isAvailable).toBe("boolean");
   });
+
+  test("Should run pre-flight probe and classify route viability", async () => {
+    const { runPreflightProbe, parseFiberError, classifyProbeResult } = await import("../src/lib/fiber/prober");
+    const probe = await runPreflightProbe("fbr_mock_test_invoice_address");
+
+    expect(probe.viable).toBe(true);
+    expect(probe.classification).toBe("ROUTE_VIABLE");
+
+    // Test error parsing
+    const parsedInsufficient = parseFiberError("Insufficient balance: max outbound liquidity 500 is insufficient");
+    expect(parsedInsufficient.code).toBe("InsufficientLocalBalance");
+    expect(parsedInsufficient.suggestion).toContain("liquidity is insufficient");
+
+    const parsedNoRoute = parseFiberError("Failed to build route to target node");
+    expect(parsedNoRoute.code).toBe("NoRouteFound");
+
+    // Test probe classification
+    expect(classifyProbeResult("IncorrectOrUnknownPaymentDetails")).toBe("ROUTE_VIABLE");
+    expect(classifyProbeResult("NoRouteFound")).toBe("ROUTE_BLOCKED");
+  });
 });
