@@ -74,6 +74,13 @@ export async function POST(
       return NextResponse.json({ error: "QR Handover Token has expired" }, { status: 400 });
     }
 
+    // Verify Seller Identity (Caller must match the listing seller)
+    if (sellerAddress && sellerAddress !== trade.seller.joyIdAddress) {
+      return NextResponse.json({
+        error: "Unauthorized: Caller address does not match the listing seller.",
+      }, { status: 403 });
+    }
+
     // Update trade status to COMPLETED with 2-of-2 confirmations
     const updatedTrade = await prisma.trade.update({
       where: { id: tradeId },

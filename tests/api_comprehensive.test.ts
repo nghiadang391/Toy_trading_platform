@@ -175,6 +175,7 @@ describe("Comprehensive API & Edge Case Test Suite", () => {
 
   describe("3. Trades & Escrow API (/api/trades & /api/fiber/pay)", () => {
     let buyerUser: any;
+    let sellerUser: any;
     let createdListing: any;
 
     beforeAll(async () => {
@@ -189,6 +190,12 @@ describe("Comprehensive API & Edge Case Test Suite", () => {
       createdListing = await prisma.listing.findFirst({
         where: { title: "Gao Ranger Robot" },
       });
+
+      if (createdListing) {
+        sellerUser = await prisma.user.findUnique({
+          where: { id: createdListing.sellerId },
+        });
+      }
     });
 
     test("Should initiate a trade and lock listing status to RESERVED", async () => {
@@ -249,6 +256,149 @@ describe("Comprehensive API & Edge Case Test Suite", () => {
       });
       expect(passportLog).not.toBeNull();
       expect(passportLog?.ownerAddress).toBe(buyerUser.joyIdAddress);
+    });
+
+    test("Security S3: Should reject self-trade when buyerId equals sellerId", async () => {
+      // Create another active listing by Alice
+      const selfListing = await prisma.listing.create({
+        data: {
+          title: "Self Trade Test Toy",
+          description: "Test description",
+          condition: "NEW",
+          category: "PUZZLES",
+          priceFiat: 100000,
+          currency: "VND",
+          imageUrls: "[]",
+          tradeMethod: "MEETUP",
+          shippingRegion: "VIETNAM",
+          sellerId: sellerUser.id,
+          status: "ACTIVE",
+        },
+      });
+
+      const req = new Request("http://localhost:3000/api/trades", {
+        method: "POST",
+        body: JSON.stringify({
+          listingId: selfListing.id,
+          buyerId: sellerUser.id, // Same as sellerId!
+          method: "MEETUP",
+          priceFiat: 100000,
+          priceCkb: "5000000000",
+          exchangeRate: 0.02,
+        }),
+      });
+
+      const res = await createTrade(req);
+      const data = await res.json();
+
+      expect(res.status).toBe(400);
+      expect(data.error).toContain("Sellers cannot initiate escrow trades on their own listings");
+    });
+
+    test("Security S2: Should reject QR settlement if caller address does not match seller", async () => {
+      const { POST: settleQrHandover, GET: generateQrToken } = await import("../src/app/api/trades/[id]/qr/route");
+
+      // Setup a fresh trade for QR testing
+      const qrListing = await prisma.listing.create({
+        data: {
+          title: "QR Security Test Toy",
+          description: "Testing QR seller verification",
+          condition: "GOOD",
+          category: "VEHICLES",
+          priceFiat: 200000,
+          currency: "VND",
+          imageUrls: "[]",
+          tradeMethod: "MEETUP",
+          shippingRegion: "VIETNAM",
+          sellerId: sellerUser.id,
+          status: "ACTIVE",
+        },
+      });
+
+      const qrTrade = await prisma.trade.create({
+        data: {
+          listingId: qrListing.id,
+          buyerId: buyerUser.id,
+          sellerId: sellerUser.id,
+          priceFiat: 200000,
+          priceCkb: BigInt("10000000000"),
+          exchangeRate: 0.02,
+          method: "MEETUP",
+          status: "ESCROW_FUNDED",
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        },
+      });
+
+      // Generate dynamic QR token
+      const getReq = new Request(`http://localhost:3000/api/trades/${qrTrade.id}/qr`);
+      const tokenRes = await generateQrToken(getReq, { params: Promise.resolve({ id: qrTrade.id }) });
+      const tokenData = await tokenRes.json();
+
+      // Settle with attacker address (mismatched seller)
+      const postReq = new Request(`http://localhost:3000/api/trades/${qrTrade.id}/qr`, {
+        method: "POST",
+        body: JSON.stringify({
+          token: tokenData.token,
+          sellerAddress: "0xattacker_fake_seller_address",
+        }),
+      });
+
+      const settleRes = await settleQrHandover(postReq, { params: Promise.resolve({ id: qrTrade.id }) });
+      const settleData = await settleRes.json();
+
+      expect(settleRes.status).toBe(403);
+      expect(settleData.error).toContain("Caller address does not match the listing seller");
+    });
+
+    test("Security S4: Should sweep and expire trades past their 7-day timeout", async () => {
+      const { POST: sweepExpiredTrades } = await import("../src/app/api/trades/expire/route");
+
+      // Create a stale expired trade (expiresAt in the past)
+      const staleListing = await prisma.listing.create({
+        data: {
+          title: "Stale Escrow Toy",
+          description: "Listing that was reserved but expired",
+          condition: "GOOD",
+          category: "OTHER",
+          priceFiat: 300000,
+          currency: "VND",
+          imageUrls: "[]",
+          tradeMethod: "MEETUP",
+          shippingRegion: "VIETNAM",
+          sellerId: sellerUser.id,
+          status: "RESERVED",
+        },
+      });
+
+      const pastDate = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000); // 8 days ago
+      const staleTrade = await prisma.trade.create({
+        data: {
+          listingId: staleListing.id,
+          buyerId: buyerUser.id,
+          sellerId: sellerUser.id,
+          priceFiat: 300000,
+          priceCkb: BigInt("15000000000"),
+          exchangeRate: 0.02,
+          method: "MEETUP",
+          status: "ESCROW_FUNDED",
+          expiresAt: pastDate,
+        },
+      });
+
+      // Run expiration sweep
+      const sweepRes = await sweepExpiredTrades();
+      const sweepData = await sweepRes.json();
+
+      expect(sweepRes.status).toBe(200);
+      expect(sweepData.success).toBe(true);
+      expect(sweepData.expiredCount).toBeGreaterThanOrEqual(1);
+
+      // Verify trade is now EXPIRED and listing is released back to ACTIVE
+      const updatedStaleTrade = await prisma.trade.findUnique({ where: { id: staleTrade.id } });
+      const updatedStaleListing = await prisma.listing.findUnique({ where: { id: staleListing.id } });
+
+      expect(updatedStaleTrade?.status).toBe("EXPIRED");
+      expect(updatedStaleListing?.status).toBe("ACTIVE");
     });
   });
 });

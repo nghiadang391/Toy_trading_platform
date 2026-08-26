@@ -9,11 +9,12 @@ export async function verifySignature(
   signature: string,
   joyIdAddress: string
 ): Promise<boolean> {
-  // 1. Development/Testing/Demo Mock Signature Bypass
-  if (
-    signature === `mock-sig-${joyIdAddress}` ||
-    signature.startsWith("mock-sig-")
-  ) {
+  // 1. Development/Testing Mock Signature Bypass (Strictly gated by env)
+  const isMockAuthAllowed =
+    process.env.NODE_ENV !== "production" &&
+    (process.env.ENABLE_MOCK_AUTH === "true" || process.env.NODE_ENV === "test");
+
+  if (isMockAuthAllowed && signature === `mock-sig-${joyIdAddress}`) {
     return true;
   }
 

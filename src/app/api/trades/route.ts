@@ -29,6 +29,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Listing is not available" }, { status: 400 });
     }
 
+    if (buyerId === listing.sellerId) {
+      return NextResponse.json({
+        error: "Invalid Trade: Sellers cannot initiate escrow trades on their own listings.",
+      }, { status: 400 });
+    }
+
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7); // Escrow locks for 7 days
 
