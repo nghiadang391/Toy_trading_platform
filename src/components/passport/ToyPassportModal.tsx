@@ -198,7 +198,9 @@ export default function ToyPassportModal({ listingId, isOpen, onClose }: ToyPass
         }
         .info-row {
           display: flex;
+          flex-wrap: wrap;
           justify-content: space-between;
+          gap: 4px;
           margin-bottom: 8px;
           font-size: 0.85rem;
         }
@@ -207,10 +209,15 @@ export default function ToyPassportModal({ listingId, isOpen, onClose }: ToyPass
         }
         .label {
           color: rgba(255, 255, 255, 0.5);
+          flex-shrink: 0;
         }
         .value.code {
           font-family: monospace;
           color: #60efff;
+          word-break: break-all;
+          overflow-wrap: anywhere;
+          min-width: 0;
+          max-width: 100%;
         }
         .condition-tag {
           color: #00ff87;
