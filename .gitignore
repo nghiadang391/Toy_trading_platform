@@ -33,6 +33,8 @@ CLAUDE.md
 # Project-specific ignores
 implementation_plan.md
 task.md
+skills-lock.json
+generate_deck.sh
 .vercel
 
 # Local development database
