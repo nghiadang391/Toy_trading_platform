@@ -1,39 +1,39 @@
- # ToyTrade — CKB Toy Trading Platform
+# ToyTrade — CKB Toy Trading Platform
 
-ToyTrade is a peer-to-peer toy exchange platform that helps parents swap outgrown toys. Built on the **Nervos CKB** blockchain, ToyTrade provides trustless transaction escrow, on-chain provenance tracking via **Spore DOBs (Toy Passports)**, and real-time safety verification to protect parent buyers.
-
----
-
-## ✨ Key Features
-
-- **⚡ Fiber Network Instant Settlement**: Sub-second Layer 2 payment settlement for in-person meetup handovers with automatic Layer 1 Escrow fallback.
-- **🔑 JoyID Passkey Integration**: Log in seamlessly using device biometrics (Fingerprint / FaceID / Windows Hello) without managing 12-word seed phrases.
-- **💬 P2P Parent Chat**: Buyers and sellers can message each other directly through a real-time in-app chat to coordinate trades.
-- **📱 QR Code Meetup Handover**: Generate a 1-time dynamic QR code for local meetups. Sellers scan the code to instantly settle payments and transfer the Toy Passport on the spot.
-- **🛡️ Automated Safety Recall Checker**: Real-time validation checking toy titles against official safety hazard databases (CPSC / EU Safety Gate) during listing creation to block recalled toys.
-- **📜 Spore DOB Toy Passport & Timeline**: Immutable on-chain digital passports tracking a toy's condition history, previous owners, verified parent ratings, and CKB outpoints.
-- **💰 Three-Price Market Transparency**: Real-time side-by-side display comparing the Seller's price (£/₫), Google Lens market reference, and live CKB settlement cost.
-- **🌐 EN/VI Language Toggle**: Full bilingual support — switch between English and Vietnamese across all UI, forms, and quick messages.
-- **📍 Detailed Meetup Locations**: Specific address & neighborhood tags (e.g. "Hammersmith, London" or "District 1, HCMC") for local trades.
+ToyTrade is a peer-to-peer toy exchange platform that helps parents swap outgrown toys. Built on the Nervos CKB blockchain, ToyTrade provides trustless transaction escrow, on-chain provenance tracking via Spore DOBs (Toy Passports), and real-time safety verification to protect parent buyers.
 
 ---
 
-## 🛠️ Tech Stack & Architecture
+## Key Features
+
+- **Fiber Network Instant Settlement**: Sub-second Layer 2 payment settlement for in-person meetup handovers with automatic Layer 1 Escrow fallback.
+- **JoyID Passkey Integration**: Log in using device biometrics (Fingerprint / FaceID / Windows Hello) without managing 12-word seed phrases.
+- **P2P Parent Chat**: Buyers and sellers can message each other directly through an in-app chat to coordinate trades.
+- **QR Code Meetup Handover**: Generate a 1-time dynamic QR code for local meetups. Sellers scan the code to settle payments and transfer the Toy Passport.
+- **Automated Safety Recall Checker**: Validates toy titles against official safety hazard databases (CPSC / EU Safety Gate) during listing creation to block recalled toys.
+- **Spore DOB Toy Passport & Timeline**: Immutable on-chain digital passports tracking condition history, previous owners, verified parent ratings, and CKB outpoints.
+- **Three-Price Market Transparency**: Side-by-side display comparing the seller's price (£/₫), Google Lens market reference, and live CKB settlement cost.
+- **EN/VI Language Support**: Bilingual interface across all pages, forms, and prompt suggestions.
+- **Meetup Locations**: Neighborhood and address tags for local in-person trades.
+
+---
+
+## Tech Stack & Architecture
 
 | Layer | Technologies | Role & Purpose |
 | :--- | :--- | :--- |
-| **Frontend UI** | **Next.js 16 (App Router)**, **React 19**, Vanilla CSS, Tailwind CSS 4 | Modern reactive UI, file-based routing, server-side pre-rendering, scoped aesthetics |
-| **Serverless Backend** | **Next.js Route Handlers (`src/app/api/`)** | 12 REST API endpoints handling listings, escrows, chat, safety recall checks & pricing feeds |
-| **Database & ORM** | **Turso (Distributed LibSQL / SQLite)**, **Prisma 7** | Serverless edge SQL database with type-safe schema modeling via `@prisma/adapter-libsql` |
-| **Layer 1 Blockchain** | **Nervos CKB (Aggron4 Testnet)**, `@ckb-ccc/core` | UTXO-based Cell Model storing on-chain assets, smart contracts & permanent storage capacity |
-| **Digital Objects (DOB)** | **Spore Protocol (`@spore-sdk/core`)** | Permanent on-chain toy passports (~244 CKB capacity per cell; mint once, trade forever) |
-| **Layer 2 Payments** | **Fiber Network (FNN JSON-RPC)** | Lightning-fast, off-chain payment channels for instant meetup settlement with zero gas |
-| **Biometric Auth** | **JoyID SDK (`@joyid/ckb`, `@joyid/core`)** | WebAuthn passkey authentication (FaceID/TouchID) without browser extensions or seed phrases |
-| **Testing & QA** | **Jest**, `ts-jest` | Automated unit and integration testing suite |
+| **Frontend UI** | Next.js 16 (App Router), React 19, Vanilla CSS, Tailwind CSS 4 | Reactive interface, file-based routing, server-side pre-rendering |
+| **Serverless Backend** | Next.js Route Handlers (`src/app/api/`) | 12 REST API endpoints handling listings, escrows, chat, safety recall checks, and pricing feeds |
+| **Database & ORM** | Turso (Distributed LibSQL / SQLite), Prisma 7 | Serverless edge SQL database with type-safe schema modeling via `@prisma/adapter-libsql` |
+| **Layer 1 Blockchain** | Nervos CKB (Aggron4 Testnet), `@ckb-ccc/core` | UTXO-based Cell Model storing on-chain assets, smart contracts, and permanent storage capacity |
+| **Digital Objects (DOB)** | Spore Protocol (`@spore-sdk/core`) | Permanent on-chain toy passports (~244 CKB capacity per cell; mint once, trade forever) |
+| **Layer 2 Payments** | Fiber Network (FNN JSON-RPC) | Off-chain payment channels for instant meetup settlement with zero gas |
+| **Biometric Auth** | JoyID SDK (`@joyid/ckb`, `@joyid/core`) | WebAuthn passkey authentication (FaceID/TouchID) without browser extensions or seed phrases |
+| **Testing & QA** | Jest, `ts-jest` | Automated unit and integration testing suite |
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 1. **Configure Environment**:
    Create a `.env` file in the project root with your Turso database credentials:
@@ -58,20 +58,20 @@ ToyTrade is a peer-to-peer toy exchange platform that helps parents swap outgrow
    ```
 
 5. **Launch Application**:
-   Navigate to [http://localhost:3000](http://localhost:3000) to browse and list real toys.
+   Navigate to [http://localhost:3000](http://localhost:3000) to browse and list toys.
 
 ---
 
-## 📊 Presentation Deck
+## Presentation Deck
 
-A complete 6-slide presentation deck is included in the root directory:
-- **`toytrade_pitch.pptx`**: Platform architecture, CKB smart contract escrow flow, 3-price mechanics, and strategic roadmap.
+A 6-slide presentation deck is included in the root directory:
+- `toytrade_pitch.pptx`: Platform architecture, CKB smart contract escrow flow, 3-price mechanics, and strategic roadmap.
 
 ---
 
-## ⚠️ Security & Design Limitations (MVP Disclaimer)
+## Security & Design Limitations (MVP Disclaimer)
 
-This implementation is built as an educational MVP. Several design constraints should be addressed before any production launch:
+This implementation is built as an educational MVP. Several design constraints should be addressed before a production launch:
 
 ### 1. Escrow Lock: Transaction Witness Validation
 - **Vulnerability**: The Rust smart contract checks if the buyer's/seller's lock hashes exist anywhere in the inputs list (`Source::Input`).
