@@ -119,6 +119,28 @@ const translations: Record<Language, Record<string, string>> = {
     cond_FAIR: "Fair / Well-loved",
     cond_USED: "Used",
     cond_DAMAGED: "Damaged",
+
+    // Why CKB Education Section
+    whyCkbTitle: "Why Nervos CKB?",
+    whyCkbSubtitle: "A blockchain built for real asset ownership, not fleeting tokens. Here is how CKB powers permanent toy provenance with zero recurring fees.",
+    storageTitle: "Storage = Real Ownership",
+    storageDesc: "1 CKB = 1 Byte of permanent on-chain storage. Unlike Ethereum NFTs pointing to external servers that can go offline, your toy passport lives directly in the blockchain forever.",
+    mintOnceTitle: "Mint Once, Trade Forever",
+    mintOnceDesc: "The ~244 CKB capacity is funded only on the toy's first trade. All future resales simply transfer the existing passport on-chain with ₫0 minting fees.",
+    recoverableTitle: "100% Recoverable Asset",
+    recoverableDesc: "CKB capacity is never burned or wasted like gas fees. If a toy passport is ever retired, the locked 244 CKB can be fully reclaimed.",
+    
+    // Fee Badges & Breakdown
+    passportFeeBadgeNew: "📦 Includes on-chain passport",
+    passportFeeBadgeResale: "✨ Verified Passport (₫0 mint fee)",
+    passportFeeDetailNewVnd: "Includes ₫30,000 passport mint fee (~244 CKB on-chain capacity). Resales incur ₫0 passport fee.",
+    passportFeeDetailNewGbp: "Includes £1.00 passport mint fee (~244 CKB on-chain capacity). Resales incur £0 passport fee.",
+    passportFeeDetailResale: "Pre-minted Spore DOB attached. Transfers to new owner with ₫0 mint fee.",
+    ckbCapacityLocked: "244 CKB Locked",
+    ckbCapacityTooltip: "Permanent on-chain capacity allocated to this Spore DOB cell. Fully recoverable if retired.",
+    feeBreakdownLabel: "Transparent Passport Fee",
+    firstSaleFeeNotice: "First-time listing: includes ₫30,000 (~£1.00) embedded passport storage fee backing 244 CKB on Nervos CKB.",
+    resaleFeeNotice: "Resale item: Existing Spore DOB passport detected! ₫0 passport fee.",
   },
   vi: {
     // Navbar & Footer
@@ -227,7 +249,29 @@ const translations: Record<Language, Record<string, string>> = {
     cond_GOOD: "Còn tốt",
     cond_FAIR: "Bình thường / Đã dùng nhiều",
     cond_USED: "Đã qua sử dụng",
-    cond_DAMAGED: "Có trầy xước / thiếu mảnh",
+    cond_DAMAGED: "Có trầy xước / hỏng nhẹ",
+
+    // Why CKB Education Section
+    whyCkbTitle: "Vì sao chọn Nervos CKB?",
+    whyCkbSubtitle: "Nền tảng blockchain lưu trữ tài sản thực, không phải token ảo. CKB lưu trữ vĩnh viễn lý lịch đồ chơi với chi phí duy nhất một lần.",
+    storageTitle: "Dung lượng = Quyền sở hữu thực",
+    storageDesc: "1 CKB = 1 Byte lưu trữ vĩnh cửu trên chuỗi. Khác với NFT Ethereum chỉ trỏ về máy chủ ngoài có thể bị sập, lý lịch đồ chơi của bạn được khắc trực tiếp vào blockchain.",
+    mintOnceTitle: "Tạo một lần, chuyển nhượng mãi mãi",
+    mintOnceDesc: "Dung lượng ~244 CKB chỉ cần tạo duy nhất ở lần giao dịch đầu tiên. Các lần thanh lý tiếp theo chỉ chuyển nhượng cell hiện có với phí tạo 0đ.",
+    recoverableTitle: "Tài sản hoàn lại 100%",
+    recoverableDesc: "Dung lượng CKB không bao giờ bị đốt mất như phí gas. Nếu sau này lý lịch đồ chơi được giải phóng, 244 CKB bị khóa sẽ được hoàn trả đầy đủ.",
+
+    // Fee Badges & Breakdown
+    passportFeeBadgeNew: "📦 Đã gồm phí tạo lý lịch",
+    passportFeeBadgeResale: "✨ Đồ chơi đã có lý lịch (Phí tạo 0đ)",
+    passportFeeDetailNewVnd: "Đã bao gồm 30.000đ phí đúc lý lịch Spore DOB (tương đương 244 CKB lưu trữ vĩnh viễn). Các lần bán lại sau này không mất phí tạo.",
+    passportFeeDetailNewGbp: "Đã bao gồm £1.00 phí đúc lý lịch Spore DOB (tương đương 244 CKB lưu trữ vĩnh viễn). Các lần bán lại sau này không mất phí tạo.",
+    passportFeeDetailResale: "Đã có sẵn lý lịch Spore DOB trên CKB. Chuyển nhượng sang chủ mới hoàn toàn miễn phí tạo.",
+    ckbCapacityLocked: "Đã khóa 244 CKB",
+    ckbCapacityTooltip: "Dung lượng lưu trữ vĩnh viễn trên chuỗi được cấp cho Spore DOB này. Có thể thu hồi lại toàn bộ nếu hủy cell.",
+    feeBreakdownLabel: "Minh bạch phí lưu trữ CKB",
+    firstSaleFeeNotice: "Đăng bán lần đầu: giá đã bao gồm 30.000đ (~£1.00) phí lưu trữ vĩnh viễn 244 CKB trên Nervos CKB.",
+    resaleFeeNotice: "Đồ chơi sang tay: Đã phát hiện lý lịch Spore DOB sẵn có! Phí tạo lý lịch 0đ.",
   },
 };
 

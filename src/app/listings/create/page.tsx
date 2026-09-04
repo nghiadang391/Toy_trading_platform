@@ -348,6 +348,21 @@ export default function CreateListingPage() {
           </div>
         </div>
 
+        {/* Transparent CKB Passport Fee Notice */}
+        <div className="fee-transparency-card">
+          <div className="fee-card-header">
+            <span className="fee-icon">📦</span>
+            <span className="fee-title">{t("feeBreakdownLabel")}</span>
+            <span className="fee-tag">{t("ckbCapacityLocked")}</span>
+          </div>
+          <p className="fee-desc">
+            {currency === "VND" ? t("firstSaleFeeNotice") : t("passportFeeDetailNewGbp")}
+          </p>
+          <div className="fee-breakdown-details">
+            <span>{t("ckbCapacityTooltip")}</span>
+          </div>
+        </div>
+
         <div className="row">
           <div className="form-group col">
             <label htmlFor="category">{t("categoryLabel")}</label>
@@ -539,6 +554,45 @@ export default function CreateListingPage() {
         .upload-specs {
           font-size: 0.75rem;
           color: rgba(255, 255, 255, 0.4);
+        }
+        .fee-transparency-card {
+          background: rgba(0, 255, 135, 0.05);
+          border: 1px solid rgba(0, 255, 135, 0.2);
+          border-radius: 12px;
+          padding: 14px 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .fee-card-header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .fee-title {
+          font-size: 0.85rem;
+          font-weight: 700;
+          color: #ffffff;
+          flex-grow: 1;
+        }
+        .fee-tag {
+          font-size: 0.7rem;
+          font-weight: 700;
+          color: #00ff87;
+          background: rgba(0, 255, 135, 0.15);
+          padding: 2px 8px;
+          border-radius: 4px;
+        }
+        .fee-desc {
+          font-size: 0.82rem;
+          color: rgba(255, 255, 255, 0.8);
+          line-height: 1.4;
+          margin: 0;
+        }
+        .fee-breakdown-details {
+          font-size: 0.75rem;
+          color: rgba(255, 255, 255, 0.5);
+          line-height: 1.4;
         }
         .url-input-row {
           display: flex;

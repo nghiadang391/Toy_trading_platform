@@ -66,6 +66,18 @@ export default function ToyPassportModal({ listingId, isOpen, onClose }: ToyPass
                 </span>
               </div>
               <div className="info-row">
+                <span className="label">CKB Storage Backing:</span>
+                <span className="value ckb-capacity-badge">
+                  244 CKB (~244 Bytes On-Chain)
+                </span>
+              </div>
+              <div className="info-row">
+                <span className="label">Storage Lifecycle:</span>
+                <span className="value text-emerald">
+                  Permanent &bull; 100% Recoverable
+                </span>
+              </div>
+              <div className="info-row">
                 <span className="label">Current Condition:</span>
                 <span className="value condition-tag">{data?.condition}</span>
               </div>
@@ -218,6 +230,19 @@ export default function ToyPassportModal({ listingId, isOpen, onClose }: ToyPass
           overflow-wrap: anywhere;
           min-width: 0;
           max-width: 100%;
+        }
+        .ckb-capacity-badge {
+          background: rgba(0, 255, 135, 0.12);
+          border: 1px solid rgba(0, 255, 135, 0.3);
+          color: #00ff87;
+          padding: 2px 8px;
+          border-radius: 4px;
+          font-weight: 600;
+          font-size: 0.8rem;
+        }
+        .text-emerald {
+          color: #00ff87;
+          font-weight: 600;
         }
         .condition-tag {
           color: #00ff87;

@@ -30,6 +30,7 @@ interface Listing {
     displayName: string;
     joyIdAddress: string;
   };
+  sporeDobId?: string | null;
   trades?: Array<{ id: string }>;
 }
 
@@ -149,6 +150,21 @@ export default function ListingsPage() {
                     referencePrice={item.referencePriceFiat ? Number(item.referencePriceFiat) : null}
                     currency={item.currency}
                   />
+
+                  {/* Transparent CKB Passport Storage Fee Badge */}
+                  <div 
+                    className={`passport-fee-badge ${item.sporeDobId ? "resale" : "new"}`}
+                    title={
+                      item.sporeDobId 
+                        ? t("passportFeeDetailResale") 
+                        : (item.currency === "VND" ? t("passportFeeDetailNewVnd") : t("passportFeeDetailNewGbp"))
+                    }
+                  >
+                    <span className="badge-text">
+                      {item.sporeDobId ? t("passportFeeBadgeResale") : t("passportFeeBadgeNew")}
+                    </span>
+                    <span className="badge-capacity">244 CKB</span>
+                  </div>
 
                   {/* Interactive Action Buttons for Toy Passport, QR Handover & Chat */}
                   <div className="card-actions">
@@ -365,6 +381,35 @@ export default function ListingsPage() {
           gap: 6px;
           font-size: 0.85rem;
           color: #ff4757;
+        }
+        .passport-fee-badge {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 6px 12px;
+          border-radius: 8px;
+          font-size: 0.78rem;
+          font-weight: 500;
+          cursor: help;
+          transition: background 0.2s, border-color 0.2s;
+        }
+        .passport-fee-badge.new {
+          background: rgba(0, 255, 135, 0.06);
+          border: 1px solid rgba(0, 255, 135, 0.2);
+          color: #00ff87;
+        }
+        .passport-fee-badge.resale {
+          background: rgba(96, 239, 255, 0.08);
+          border: 1px solid rgba(96, 239, 255, 0.25);
+          color: #60efff;
+        }
+        .badge-capacity {
+          background: rgba(255, 255, 255, 0.08);
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-size: 0.7rem;
+          font-weight: 700;
+          letter-spacing: 0.03em;
         }
         .card-actions {
           display: grid;
