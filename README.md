@@ -20,12 +20,16 @@ ToyTrade is a peer-to-peer toy exchange platform that helps parents swap outgrow
 
 ## 🛠️ Tech Stack & Architecture
 
-- **Frontend & App Router**: Next.js 16 (React 19), Vanilla CSS
-- **Database & Cloud Storage**: Turso Serverless SQLite (LibSQL) via Prisma ORM (`@prisma/adapter-libsql`)
-- **Blockchain**: Nervos CKB (Testnet), CKB CCC Core SDK
-- **Layer 2 Payment Channels**: Fiber Network (FNN JSON-RPC)
-- **Passkeys & Wallet**: JoyID CKB SDK (`@joyid/ckb`)
-- **Digital Objects (DOB)**: Spore Protocol (`@spore-sdk/core`)
+| Layer | Technologies | Role & Purpose |
+| :--- | :--- | :--- |
+| **Frontend UI** | **Next.js 16 (App Router)**, **React 19**, Vanilla CSS, Tailwind CSS 4 | Modern reactive UI, file-based routing, server-side pre-rendering, scoped aesthetics |
+| **Serverless Backend** | **Next.js Route Handlers (`src/app/api/`)** | 12 REST API endpoints handling listings, escrows, chat, safety recall checks & pricing feeds |
+| **Database & ORM** | **Turso (Distributed LibSQL / SQLite)**, **Prisma 7** | Serverless edge SQL database with type-safe schema modeling via `@prisma/adapter-libsql` |
+| **Layer 1 Blockchain** | **Nervos CKB (Aggron4 Testnet)**, `@ckb-ccc/core` | UTXO-based Cell Model storing on-chain assets, smart contracts & permanent storage capacity |
+| **Digital Objects (DOB)** | **Spore Protocol (`@spore-sdk/core`)** | Permanent on-chain toy passports (~244 CKB capacity per cell; mint once, trade forever) |
+| **Layer 2 Payments** | **Fiber Network (FNN JSON-RPC)** | Lightning-fast, off-chain payment channels for instant meetup settlement with zero gas |
+| **Biometric Auth** | **JoyID SDK (`@joyid/ckb`, `@joyid/core`)** | WebAuthn passkey authentication (FaceID/TouchID) without browser extensions or seed phrases |
+| **Testing & QA** | **Jest**, `ts-jest` | Automated unit and integration testing suite |
 
 ---
 
