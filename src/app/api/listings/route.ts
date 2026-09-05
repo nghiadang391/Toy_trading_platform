@@ -27,6 +27,19 @@ export async function GET(request: Request) {
             joyIdAddress: true,
           },
         },
+        trades: {
+          where: {
+            status: { in: ["PENDING", "ESCROW_FUNDED"] },
+          },
+          select: {
+            id: true,
+            status: true,
+            buyerId: true,
+            sellerId: true,
+          },
+          orderBy: { createdAt: "desc" },
+          take: 1,
+        },
       },
       orderBy: {
         createdAt: "desc",

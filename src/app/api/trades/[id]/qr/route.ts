@@ -8,16 +8,32 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id: tradeId } = await params;
+    const { id: paramId } = await params;
 
-    const trade = await prisma.trade.findUnique({
-      where: { id: tradeId },
-      include: { listing: true },
+    let trade = await prisma.trade.findUnique({
+      where: { id: paramId },
+      include: { listing: true, buyer: true, seller: true },
     });
 
     if (!trade) {
-      return NextResponse.json({ error: "Trade not found" }, { status: 404 });
+      // Check if paramId was passed as a listingId
+      trade = await prisma.trade.findFirst({
+        where: {
+          listingId: paramId,
+          status: { in: ["PENDING", "ESCROW_FUNDED"] },
+        },
+        include: { listing: true, buyer: true, seller: true },
+        orderBy: { createdAt: "desc" },
+      });
     }
+
+    if (!trade) {
+      return NextResponse.json({ 
+        error: "No active escrow trade found. Please initiate a trade first before generating a handover QR." 
+      }, { status: 404 });
+    }
+
+    const tradeId = trade.id;
 
     // Generate dynamic 1-time token
     const token = "QR_HANDOVER_" + crypto.randomBytes(12).toString("hex").toUpperCase();
@@ -36,30 +52,43 @@ export async function GET(
       token,
       expiresAt: expiresAt.toISOString(),
       toyTitle: trade.listing.title,
+      sellerAddress: trade.seller.joyIdAddress,
+      buyerAddress: trade.buyer.joyIdAddress,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-// POST /api/trades/[id]/qr - Seller scans QR token to execute 2-of-2 CKB completion
+// POST /api/trades/[id]/qr - Buyer scans QR token to execute 2-of-2 CKB completion & release escrow
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id: tradeId } = await params;
+    const { id: paramId } = await params;
     const body = await request.json();
-    const { token, sellerAddress } = body;
+    const { token, buyerAddress, sellerAddress } = body;
 
     if (!token) {
       return NextResponse.json({ error: "Token is required" }, { status: 400 });
     }
 
-    const trade = await prisma.trade.findUnique({
-      where: { id: tradeId },
+    let trade = await prisma.trade.findUnique({
+      where: { id: paramId },
       include: { listing: true, buyer: true, seller: true },
     });
+
+    if (!trade) {
+      trade = await prisma.trade.findFirst({
+        where: {
+          listingId: paramId,
+          status: { in: ["PENDING", "ESCROW_FUNDED"] },
+        },
+        include: { listing: true, buyer: true, seller: true },
+        orderBy: { createdAt: "desc" },
+      });
+    }
 
     if (!trade) {
       return NextResponse.json({ error: "Trade not found" }, { status: 404 });
@@ -74,8 +103,12 @@ export async function POST(
       return NextResponse.json({ error: "QR Handover Token has expired" }, { status: 400 });
     }
 
-    // Verify Seller Identity (Caller must match the listing seller)
-    if (sellerAddress && sellerAddress !== trade.seller.joyIdAddress) {
+    // Verify Caller Identity (In modern retail flow, buyer scans seller's QR to confirm delivery and release escrow)
+    if (buyerAddress && trade.buyer?.joyIdAddress && buyerAddress !== trade.buyer.joyIdAddress) {
+      return NextResponse.json({
+        error: "Unauthorized: Caller address does not match the trade buyer.",
+      }, { status: 403 });
+    } else if (!buyerAddress && sellerAddress && trade.seller?.joyIdAddress && sellerAddress !== trade.seller.joyIdAddress) {
       return NextResponse.json({
         error: "Unauthorized: Caller address does not match the listing seller.",
       }, { status: 403 });
@@ -83,7 +116,7 @@ export async function POST(
 
     // Update trade status to COMPLETED with 2-of-2 confirmations
     const updatedTrade = await prisma.trade.update({
-      where: { id: tradeId },
+      where: { id: trade.id },
       data: {
         buyerConfirmed: true,
         sellerConfirmed: true,
@@ -91,6 +124,12 @@ export async function POST(
         completedAt: new Date(),
         qrCodeToken: null, // Consume token
       },
+    });
+
+    // Mark listing as traded
+    await prisma.listing.update({
+      where: { id: trade.listingId },
+      data: { status: "TRADED" },
     });
 
     // Create a PassportLog entry for the Toy Passport (Spore DOB) timeline
@@ -107,7 +146,10 @@ export async function POST(
     return NextResponse.json({
       success: true,
       message: "QR Handover verified! CKB Escrow released to seller and Toy Passport DOB transferred to buyer.",
-      trade: updatedTrade,
+      trade: {
+        ...updatedTrade,
+        priceCkb: updatedTrade.priceCkb.toString(),
+      },
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

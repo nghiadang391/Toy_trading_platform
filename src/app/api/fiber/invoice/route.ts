@@ -6,20 +6,35 @@ import { fiberClient } from "@/lib/fiber/fnnClient";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { tradeId } = body;
+    const { tradeId: paramId } = body;
 
-    if (!tradeId) {
+    if (!paramId) {
       return NextResponse.json({ error: "tradeId is required" }, { status: 400 });
     }
 
-    const trade = await prisma.trade.findUnique({
-      where: { id: tradeId },
+    let trade = await prisma.trade.findUnique({
+      where: { id: paramId },
       include: { listing: true, buyer: true, seller: true },
     });
 
     if (!trade) {
-      return NextResponse.json({ error: "Trade not found" }, { status: 404 });
+      trade = await prisma.trade.findFirst({
+        where: {
+          listingId: paramId,
+          status: { in: ["PENDING", "ESCROW_FUNDED"] },
+        },
+        include: { listing: true, buyer: true, seller: true },
+        orderBy: { createdAt: "desc" },
+      });
     }
+
+    if (!trade) {
+      return NextResponse.json({ 
+        error: "No active escrow trade found. Please initiate a trade first before generating a handover QR." 
+      }, { status: 404 });
+    }
+
+    const tradeId = trade.id;
 
     // Attempt to generate Fiber invoice
     try {

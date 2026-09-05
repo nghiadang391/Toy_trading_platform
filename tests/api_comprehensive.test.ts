@@ -350,6 +350,74 @@ describe("Comprehensive API & Edge Case Test Suite", () => {
       expect(settleData.error).toContain("Caller address does not match the listing seller");
     });
 
+    test("Security S2b: Buyer QR approval should release escrow or reject mismatched buyer", async () => {
+      const { POST: settleQrHandover, GET: generateQrToken } = await import("../src/app/api/trades/[id]/qr/route");
+
+      const qrListing = await prisma.listing.create({
+        data: {
+          title: "Buyer Approval Test Toy",
+          description: "Testing Buyer QR verification",
+          condition: "GOOD",
+          category: "PUZZLES",
+          priceFiat: 150000,
+          currency: "VND",
+          imageUrls: "[]",
+          tradeMethod: "MEETUP",
+          shippingRegion: "VIETNAM",
+          sellerId: sellerUser.id,
+          status: "ACTIVE",
+        },
+      });
+
+      const qrTrade = await prisma.trade.create({
+        data: {
+          listingId: qrListing.id,
+          buyerId: buyerUser.id,
+          sellerId: sellerUser.id,
+          priceFiat: 150000,
+          priceCkb: BigInt("7500000000"),
+          exchangeRate: 0.02,
+          method: "MEETUP",
+          status: "ESCROW_FUNDED",
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        },
+      });
+
+      // Generate dynamic QR token from listingId
+      const getReq = new Request(`http://localhost:3000/api/trades/${qrListing.id}/qr`);
+      const tokenRes = await generateQrToken(getReq, { params: Promise.resolve({ id: qrListing.id }) });
+      const tokenData = await tokenRes.json();
+      expect(tokenRes.status).toBe(200);
+      expect(tokenData.token).toBeDefined();
+
+      // Attempt verification with unauthorized buyer caller
+      const unauthorizedPost = new Request(`http://localhost:3000/api/trades/${qrTrade.id}/qr`, {
+        method: "POST",
+        body: JSON.stringify({
+          token: tokenData.token,
+          buyerAddress: "0xattacker_fake_buyer_address",
+        }),
+      });
+      const unauthRes = await settleQrHandover(unauthorizedPost, { params: Promise.resolve({ id: qrTrade.id }) });
+      const unauthData = await unauthRes.json();
+      expect(unauthRes.status).toBe(403);
+      expect(unauthData.error).toContain("Caller address does not match the trade buyer");
+
+      // Legitimate buyer approves handover and releases escrow
+      const legitimatePost = new Request(`http://localhost:3000/api/trades/${qrTrade.id}/qr`, {
+        method: "POST",
+        body: JSON.stringify({
+          token: tokenData.token,
+          buyerAddress: buyerUser.joyIdAddress,
+        }),
+      });
+      const legitimateRes = await settleQrHandover(legitimatePost, { params: Promise.resolve({ id: qrTrade.id }) });
+      const legitimateData = await legitimateRes.json();
+      expect(legitimateRes.status).toBe(200);
+      expect(legitimateData.success).toBe(true);
+      expect(legitimateData.trade.status).toBe("COMPLETED");
+    });
+
     test("Security S4: Should sweep and expire trades past their 7-day timeout", async () => {
       const { POST: sweepExpiredTrades } = await import("../src/app/api/trades/expire/route");
 

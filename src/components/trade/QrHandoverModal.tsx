@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useLanguage } from "@/lib/LanguageContext";
+import { useUser } from "@/lib/UserContext";
 
 interface QrHandoverModalProps {
   tradeId: string;
@@ -17,6 +18,7 @@ export default function QrHandoverModal({
   onSuccess,
 }: QrHandoverModalProps) {
   const { t } = useLanguage();
+  const { user } = useUser();
   const [activeTab, setActiveTab] = useState<"SHOW_QR" | "SCAN_QR">("SHOW_QR");
   const [paymentMode, setPaymentMode] = useState<"FIBER" | "CKB_L1">("FIBER");
   const [isFallbackActive, setIsFallbackActive] = useState(false);
@@ -50,16 +52,16 @@ export default function QrHandoverModal({
           setFiberData(data);
           setPaymentMode("FIBER");
         } else {
-          // Trigger smooth fallback to Standard Handover (L1)
+          // Trigger fallback to Standard Handover (L1)
           setIsFallbackActive(true);
           setPaymentMode("CKB_L1");
-          loadL1Token();
+          await loadL1Token();
         }
       } catch (err) {
         console.warn("Fiber invoice init failed, falling back to L1:", err);
         setIsFallbackActive(true);
         setPaymentMode("CKB_L1");
-        loadL1Token();
+        await loadL1Token();
       }
     }
 
@@ -69,14 +71,23 @@ export default function QrHandoverModal({
         const data = await res.json();
         if (res.ok) {
           setTokenData(data);
+          // If current user is buyer, default them to Scan tab; if seller, default to Show QR
+          if (user?.joyIdAddress && data.buyerAddress === user.joyIdAddress) {
+            setActiveTab("SCAN_QR");
+          } else if (user?.joyIdAddress && data.sellerAddress === user.joyIdAddress) {
+            setActiveTab("SHOW_QR");
+          }
+        } else {
+          setError(data.error || t("noActiveTradeFound"));
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Failed to load L1 token:", err);
+        setError(t("noActiveTradeFound"));
       }
     }
 
     loadHandoverData();
-  }, [isOpen, tradeId]);
+  }, [isOpen, tradeId, user?.joyIdAddress]);
 
   async function handleVerifyScan(e: React.FormEvent) {
     e.preventDefault();
@@ -106,13 +117,13 @@ export default function QrHandoverModal({
           setError(data.error || "Fiber payment verification failed");
         }
       } else {
-        // Settle standard L1 token
+        // Settle standard L1 token - Buyer submits confirmation releasing escrow
         const res = await fetch(`/api/trades/${tradeId}/qr`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             token: inputCode,
-            sellerAddress: "0xdummyjoyidaddressfrompasskeysignin",
+            buyerAddress: user?.joyIdAddress || tokenData?.buyerAddress,
           }),
         });
 
@@ -133,8 +144,9 @@ export default function QrHandoverModal({
 
   if (!isOpen) return null;
 
-  const currentDisplayCode =
-    paymentMode === "FIBER"
+  const currentDisplayCode = error
+    ? null
+    : paymentMode === "FIBER"
       ? fiberData?.invoice || "Loading Fiber Invoice..."
       : tokenData?.token || "Generating Token...";
 
@@ -156,7 +168,7 @@ export default function QrHandoverModal({
         </div>
 
         {/* Fallback Notice Banner */}
-        {isFallbackActive && (
+        {isFallbackActive && !error && (
           <div className="fallback-banner">
             <p>{t("switchingToFallback")}</p>
           </div>
@@ -167,18 +179,25 @@ export default function QrHandoverModal({
             className={`tab ${activeTab === "SHOW_QR" ? "active" : ""}`}
             onClick={() => setActiveTab("SHOW_QR")}
           >
-            {t("buyerShowQr")}
+            {t("sellerShowQr")}
           </button>
           <button
             className={`tab ${activeTab === "SCAN_QR" ? "active" : ""}`}
             onClick={() => setActiveTab("SCAN_QR")}
           >
-            {t("sellerScanVerify")}
+            {t("buyerScanVerify")}
           </button>
         </div>
 
         <div className="modal-body">
-          {activeTab === "SHOW_QR" ? (
+          {error ? (
+            <div className="trade-error-view">
+              <div className="alert error">{error}</div>
+              <p className="hint mt-3">
+                {t("noActiveTradeFound")}
+              </p>
+            </div>
+          ) : activeTab === "SHOW_QR" ? (
             <div className="qr-container">
               <p className="hint">
                 {paymentMode === "FIBER"
@@ -211,8 +230,8 @@ export default function QrHandoverModal({
             <form onSubmit={handleVerifyScan} className="scan-container">
               <p className="hint">
                 {paymentMode === "FIBER"
-                  ? "Scan or enter the Buyer's Fiber Invoice to settle instantly."
-                  : "Scan or enter the Buyer's Handover Token to confirm delivery."}
+                  ? "Scan or enter the Seller's Fiber Invoice to settle payment upon inspection."
+                  : "Scan or enter the Seller's Handover Token to confirm inspection and release CKB escrow."}
               </p>
 
               <div className="form-group">
