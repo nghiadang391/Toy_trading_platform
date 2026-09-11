@@ -29,7 +29,7 @@ describe("Comprehensive API & Edge Case Test Suite", () => {
   });
 
   describe("1. User API (/api/users)", () => {
-    test("Should create and register a new user with standard UK region", async () => {
+    test("[IT-USR-001] Should create and register a new user with standard UK region", async () => {
       const req = new Request("http://localhost:3000/api/users", {
         method: "POST",
         body: JSON.stringify({
@@ -47,7 +47,7 @@ describe("Comprehensive API & Edge Case Test Suite", () => {
       expect(data.region).toBe("UK");
     });
 
-    test("Should defensively normalize 'VN' to 'VIETNAM' region", async () => {
+    test("[IT-USR-002] Should defensively normalize 'VN' to 'VIETNAM' region", async () => {
       const req = new Request("http://localhost:3000/api/users", {
         method: "POST",
         body: JSON.stringify({
@@ -66,7 +66,7 @@ describe("Comprehensive API & Edge Case Test Suite", () => {
   });
 
   describe("2. Listings API (/api/listings)", () => {
-    test("Should successfully create listing with Vietnamese region and VND currency", async () => {
+    test("[IT-LST-001] Should successfully create listing with Vietnamese region and VND currency", async () => {
       const req = new Request("http://localhost:3000/api/listings", {
         method: "POST",
         body: JSON.stringify({
@@ -97,7 +97,7 @@ describe("Comprehensive API & Edge Case Test Suite", () => {
       expect(data.condition).toBe("GOOD");
     });
 
-    test("Should defensively normalize legacy 'USED' condition to 'GOOD' and 'VN' to 'VIETNAM'", async () => {
+    test("[IT-LST-002] Should defensively normalize legacy 'USED' condition to 'GOOD' and 'VN' to 'VIETNAM'", async () => {
       const req = new Request("http://localhost:3000/api/listings", {
         method: "POST",
         body: JSON.stringify({
@@ -126,7 +126,7 @@ describe("Comprehensive API & Edge Case Test Suite", () => {
       expect(data.shippingRegion).toBe("VIETNAM");
     });
 
-    test("Should automatically upsert newly connected JoyID user when listing a toy", async () => {
+    test("[IT-LST-003] Should automatically upsert newly connected JoyID user when listing a toy", async () => {
       const newJoyId = "ckt1qfreshuserfrompasskey999";
       const req = new Request("http://localhost:3000/api/listings", {
         method: "POST",
@@ -162,7 +162,7 @@ describe("Comprehensive API & Edge Case Test Suite", () => {
       expect(userInDb?.displayName).toBe("Passkey User 999");
     });
 
-    test("Should list all toys via GET /api/listings", async () => {
+    test("[IT-LST-004] Should list all toys via GET /api/listings", async () => {
       const req = new Request("http://localhost:3000/api/listings");
       const res = await getListings(req);
       const data = await res.json();

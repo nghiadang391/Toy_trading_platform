@@ -2,7 +2,7 @@ import React from "react";
 import ErrorBoundary from "../src/components/ui/ErrorBoundary";
 
 describe("ErrorBoundary Component Unit Tests", () => {
-  test("getDerivedStateFromError updates state to hasError: true with error details", () => {
+  test("[UT-UI-001] getDerivedStateFromError updates state to hasError: true with error details", () => {
     const testError = new Error("Simulated component render failure");
     const derivedState = ErrorBoundary.getDerivedStateFromError(testError);
 
@@ -11,7 +11,7 @@ describe("ErrorBoundary Component Unit Tests", () => {
     expect(derivedState.error?.message).toBe("Simulated component render failure");
   });
 
-  test("ErrorBoundary renders children when there is no error", () => {
+  test("[UT-UI-002] ErrorBoundary renders children when there is no error", () => {
     const boundary = new ErrorBoundary({ children: "Normal content" });
     boundary.state = { hasError: false, error: null };
 
@@ -19,7 +19,7 @@ describe("ErrorBoundary Component Unit Tests", () => {
     expect(rendered).toBe("Normal content");
   });
 
-  test("ErrorBoundary renders fallback UI when hasError is true", () => {
+  test("[UT-UI-003] ErrorBoundary renders fallback UI when hasError is true", () => {
     const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
     
     const boundary = new ErrorBoundary({ children: "Normal content" });
@@ -36,7 +36,7 @@ describe("ErrorBoundary Component Unit Tests", () => {
     consoleSpy.mockRestore();
   });
 
-  test("ErrorBoundary respects custom fallback prop if provided", () => {
+  test("[UT-UI-004] ErrorBoundary respects custom fallback prop if provided", () => {
     const customFallback = React.createElement("div", { id: "custom-fallback" }, "Custom Error");
     const boundary = new ErrorBoundary({ 
       children: "Normal content", 
