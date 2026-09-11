@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "jest",
+    "test:unit": "jest tests/unit",
+    "test:integration": "jest tests/integration",
     "postinstall": "prisma generate",
     "clean-port": "kill -9 $(lsof -t -i:3000) 2>/dev/null || true"
   },
