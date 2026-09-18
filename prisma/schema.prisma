@@ -71,6 +71,8 @@ model Trade {
   escrowTxHash    String?                     // CKB escrow transaction hash
   escrowCellOutpoint String?                  // Outpoint of the escrow Cell
   status          TradeStatus  @default(PENDING)
+  cancelReason    String?
+  cancelRequestedBy String?                   // 'BUYER' or 'SELLER'
   buyerConfirmed  Boolean      @default(false)
   sellerConfirmed Boolean      @default(false)
   qrCodeToken     String?
@@ -183,6 +185,8 @@ enum TradeStatus {
   BUYER_CONFIRMED
   SELLER_CONFIRMED
   COMPLETED
+  CANCEL_REQUESTED
+  CANCELLED
   EXPIRED
   DISPUTED
 }

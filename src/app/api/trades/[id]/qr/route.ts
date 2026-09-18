@@ -20,7 +20,7 @@ export async function GET(
       trade = await prisma.trade.findFirst({
         where: {
           listingId: paramId,
-          status: { in: ["PENDING", "ESCROW_FUNDED"] },
+          status: { in: ["PENDING", "ESCROW_FUNDED", "CANCEL_REQUESTED"] },
         },
         include: { listing: true, buyer: true, seller: true },
         orderBy: { createdAt: "desc" },
@@ -50,6 +50,9 @@ export async function GET(
     return NextResponse.json({
       tradeId,
       token,
+      status: trade.status,
+      cancelReason: trade.cancelReason,
+      cancelRequestedBy: trade.cancelRequestedBy,
       expiresAt: expiresAt.toISOString(),
       toyTitle: trade.listing.title,
       sellerAddress: trade.seller.joyIdAddress,

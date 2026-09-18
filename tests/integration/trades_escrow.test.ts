@@ -2,6 +2,7 @@ import { prisma } from "../../src/lib/prisma";
 import { POST as createTrade } from "../../src/app/api/trades/route";
 import { POST as settleQrHandover, GET as generateQrToken } from "../../src/app/api/trades/[id]/qr/route";
 import { POST as sweepExpiredTrades } from "../../src/app/api/trades/expire/route";
+import { POST as cancelTrade, GET as getCancelStatus } from "../../src/app/api/trades/[id]/cancel/route";
 
 /**
  * IT-ESC Suite: Escrow & QR Handover End-to-End Integration Verification
@@ -288,5 +289,125 @@ describe("Trades & Escrow Integration Suite (IT-ESC)", () => {
     // Clean up
     await prisma.trade.delete({ where: { id: expiredTrade.id } });
     await prisma.listing.delete({ where: { id: expiredListing.id } });
+  });
+
+  test("[IT-ESC-007] Buyer Rejection & Cancellation Request (Option B Mutual Cancel)", async () => {
+    const trade = await prisma.trade.create({
+      data: {
+        listingId: listing.id,
+        sellerId: seller.id,
+        buyerId: buyer.id,
+        priceFiat: 250,
+        priceCkb: BigInt("25000000000"),
+        exchangeRate: 0.02,
+        method: "MEETUP",
+        status: "ESCROW_FUNDED",
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+    });
+
+    const cancelReq = new Request(`http://localhost:3000/api/trades/${trade.id}/cancel`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "REQUEST_CANCEL",
+        actorType: "BUYER",
+        reason: "Toy damaged or parts missing",
+        callerAddress: buyer.joyIdAddress,
+      }),
+    });
+
+    const res = await cancelTrade(cancelReq, { params: Promise.resolve({ id: trade.id }) });
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.success).toBe(true);
+    expect(data.trade.status).toBe("CANCEL_REQUESTED");
+    expect(data.trade.cancelReason).toBe("Toy damaged or parts missing");
+    expect(data.trade.cancelRequestedBy).toBe("BUYER");
+
+    // Clean up
+    await prisma.trade.delete({ where: { id: trade.id } });
+  });
+
+  test("[IT-ESC-008] Seller In-Hand Possession Confirmation & Escrow Refund (Option B Mutual Cancel)", async () => {
+    // Put listing in RESERVED
+    await prisma.listing.update({
+      where: { id: listing.id },
+      data: { status: "RESERVED" },
+    });
+
+    const trade = await prisma.trade.create({
+      data: {
+        listingId: listing.id,
+        sellerId: seller.id,
+        buyerId: buyer.id,
+        priceFiat: 250,
+        priceCkb: BigInt("25000000000"),
+        exchangeRate: 0.02,
+        method: "MEETUP",
+        status: "CANCEL_REQUESTED",
+        cancelReason: "Item rejected by buyer during in-person inspection",
+        cancelRequestedBy: "BUYER",
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+    });
+
+    const confirmReq = new Request(`http://localhost:3000/api/trades/${trade.id}/cancel`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "CONFIRM_CANCEL",
+        actorType: "SELLER",
+        callerAddress: seller.joyIdAddress,
+      }),
+    });
+
+    const res = await cancelTrade(confirmReq, { params: Promise.resolve({ id: trade.id }) });
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.success).toBe(true);
+    expect(data.trade.status).toBe("CANCELLED");
+
+    // Verify listing was restored to ACTIVE
+    const restoredListing = await prisma.listing.findUnique({ where: { id: listing.id } });
+    expect(restoredListing?.status).toBe("ACTIVE");
+
+    // Clean up
+    await prisma.trade.delete({ where: { id: trade.id } });
+  });
+
+  test("[IT-ESC-009] Unauthorized Third-Party Cancellation Rejection", async () => {
+    const trade = await prisma.trade.create({
+      data: {
+        listingId: listing.id,
+        sellerId: seller.id,
+        buyerId: buyer.id,
+        priceFiat: 250,
+        priceCkb: BigInt("25000000000"),
+        exchangeRate: 0.02,
+        method: "MEETUP",
+        status: "ESCROW_FUNDED",
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+    });
+
+    const intruderReq = new Request(`http://localhost:3000/api/trades/${trade.id}/cancel`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "REQUEST_CANCEL",
+        actorType: "BUYER",
+        reason: "Malicious cancellation attempt",
+        callerAddress: intruder.joyIdAddress,
+      }),
+    });
+
+    const res = await cancelTrade(intruderReq, { params: Promise.resolve({ id: trade.id }) });
+    expect(res.status).toBe(403);
+    const data = await res.json();
+    expect(data.error).toContain("Unauthorized");
+
+    // Clean up
+    await prisma.trade.delete({ where: { id: trade.id } });
   });
 });
