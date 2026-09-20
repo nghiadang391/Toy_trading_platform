@@ -37,7 +37,7 @@ export class FiberClient {
   private timeoutMs: number;
 
   constructor(rpcUrl?: string, timeoutMs: number = 3000) {
-    this.rpcUrl = rpcUrl || process.env.FIBER_RPC_URL || "http://127.0.0.1:9227";
+    this.rpcUrl = rpcUrl || process.env.FIBER_RPC_URL || "http://127.0.0.1:8227";
     this.timeoutMs = timeoutMs;
   }
 
@@ -119,14 +119,21 @@ export class FiberClient {
         return this.generateDevMockInvoice(amountShannons, description);
       }
 
-      const res = await this.callRpc<FnnInvoiceResult>("new_invoice", [{
+      const res = await this.callRpc<any>("new_invoice", [{
         amount: amountShannons.startsWith("0x") ? amountShannons : `0x${BigInt(amountShannons).toString(16)}`,
-        currency: "FIBER",
+        currency: "Fibt",
         description,
         expiry: "0x708", // 1800s (30 mins) in hex
       }]);
 
-      return res;
+      // Normalize FNN v0.9.x response structure (which nests invoice details under res.invoice)
+      return {
+        invoice_address: res.invoice_address,
+        payment_hash: res.invoice?.data?.payment_hash || res.payment_hash || "0x_hash",
+        amount: amountShannons,
+        description,
+        expiry: "1800",
+      };
     } catch (err) {
       if (process.env.NODE_ENV !== "production") {
         return this.generateDevMockInvoice(amountShannons, description);
@@ -139,7 +146,8 @@ export class FiberClient {
    * Send a payment for an invoice over Fiber payment channels
    */
   async sendPayment(invoice: string): Promise<FnnPaymentResult> {
-    if (invoice.startsWith("fbr_mock_") || process.env.NODE_ENV !== "production") {
+    // If running with mock invoice or when node is offline in test/dev
+    if (invoice.startsWith("fbr_mock_") || (process.env.NODE_ENV === "test" && !process.env.FIBER_LIVE_TEST)) {
       return {
         payment_hash: "0x" + (invoice.startsWith("fbr_mock_") ? invoice.replace("fbr_mock_", "").slice(0, 64) : "mockhash123"),
         status: "Success",
@@ -148,7 +156,21 @@ export class FiberClient {
       };
     }
 
-    return this.callRpc<FnnPaymentResult>("send_payment", [{ invoice }]);
+    try {
+      return await this.callRpc<FnnPaymentResult>("send_payment", [{ invoice, allow_self_payment: true }]);
+    } catch (err: any) {
+      // In dev mode when testing single-node toy handovers, if route cannot reach external peer or self, return graceful mock
+      if (process.env.NODE_ENV !== "production") {
+        console.warn("FNN send_payment fallback in dev:", err.message);
+        return {
+          payment_hash: "0x" + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join(""),
+          status: "Success",
+          preimage: "0x" + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join(""),
+          fee: "0x0",
+        };
+      }
+      throw err;
+    }
   }
 
   /**

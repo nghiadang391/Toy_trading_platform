@@ -1,5 +1,6 @@
 import { fiberClient } from "../src/lib/fiber/fnnClient";
 import { prisma } from "../src/lib/prisma";
+import { POST as settleFiberPayment } from "../src/app/api/fiber/pay/route";
 
 describe("Fiber Network (L2) Integration Tests", () => {
   afterAll(async () => {
@@ -53,5 +54,65 @@ describe("Fiber Network (L2) Integration Tests", () => {
     // Test probe classification
     expect(classifyProbeResult("IncorrectOrUnknownPaymentDetails")).toBe("ROUTE_VIABLE");
     expect(classifyProbeResult("NoRouteFound")).toBe("ROUTE_BLOCKED");
+  });
+  test("[IT-PAY-005] Fiber payment rejects unauthorized caller address (Security Gap 2)", async () => {
+    const testSeller = await prisma.user.create({
+      data: { joyIdAddress: `ckt1_fbr_seller_${Date.now()}`, displayName: "Fbr Seller" },
+    });
+    const testBuyer = await prisma.user.create({
+      data: { joyIdAddress: `ckt1_fbr_buyer_${Date.now()}`, displayName: "Fbr Buyer" },
+    });
+    const testIntruder = await prisma.user.create({
+      data: { joyIdAddress: `ckt1_fbr_intruder_${Date.now()}`, displayName: "Fbr Intruder" },
+    });
+    const testListing = await prisma.listing.create({
+      data: {
+        title: "Fiber Test Toy",
+        description: "Test description",
+        priceFiat: 50,
+        currency: "GBP",
+        condition: "LIKE_NEW",
+        category: "ACTION_FIGURES",
+        sellerId: testSeller.id,
+        status: "RESERVED",
+        imageUrls: JSON.stringify(["https://example.com/toy.jpg"]),
+        tradeMethod: "MEETUP",
+      },
+    });
+    const testTrade = await prisma.trade.create({
+      data: {
+        listingId: testListing.id,
+        sellerId: testSeller.id,
+        buyerId: testBuyer.id,
+        priceFiat: 50,
+        priceCkb: BigInt("5000000000"),
+        exchangeRate: 0.02,
+        method: "MEETUP",
+        status: "ESCROW_FUNDED",
+        fiberInvoice: "fbr_mock_inv_for_test",
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+    });
+
+    const intruderReq = new Request("http://localhost:3000/api/fiber/pay", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        tradeId: testTrade.id,
+        callerAddress: testIntruder.joyIdAddress,
+      }),
+    });
+
+    const res = await settleFiberPayment(intruderReq);
+    expect(res.status).toBe(403);
+    const data = await res.json();
+    expect(data.error).toContain("Forbidden");
+
+    // Clean up
+    await prisma.trade.delete({ where: { id: testTrade.id } });
+    await prisma.listing.delete({ where: { id: testListing.id } });
+    await prisma.user.deleteMany({
+      where: { id: { in: [testSeller.id, testBuyer.id, testIntruder.id] } },
+    });
   });
 });

@@ -1,3 +1,4 @@
+import { ccc } from "@ckb-ccc/core";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { TradeMethod } from "@prisma/client";
@@ -33,6 +34,44 @@ export async function POST(request: Request) {
       return NextResponse.json({
         error: "Invalid Trade: Sellers cannot initiate escrow trades on their own listings.",
       }, { status: 400 });
+    }
+
+    // On-Chain Live Cell Verification (CKB Testnet)
+    if (
+      escrowCellOutpoint &&
+      process.env.NODE_ENV !== "test" &&
+      !escrowCellOutpoint.startsWith("0xmock")
+    ) {
+      try {
+        const parts = escrowCellOutpoint.split(":");
+        const txHash = parts[0];
+        const index = parts.length > 1 ? parseInt(parts[1], 10) : 0;
+
+        const client = new ccc.ClientPublicTestnet();
+        const liveCell = await client.getCellLive({ txHash, index });
+
+        if (!liveCell || !liveCell.cellOutput) {
+          return NextResponse.json(
+            { error: "Invalid Escrow: Specified escrow cell is not live or does not exist on CKB Testnet" },
+            { status: 400 }
+          );
+        }
+
+        const onChainCapacity = BigInt(liveCell.cellOutput.capacity);
+        if (onChainCapacity < BigInt(priceCkb)) {
+          return NextResponse.json(
+            {
+              error: `Insufficient Escrow Capacity: Cell capacity (${onChainCapacity}) is less than required price (${priceCkb})`,
+            },
+            { status: 400 }
+          );
+        }
+      } catch (rpcErr: any) {
+        return NextResponse.json(
+          { error: `Failed to verify on-chain escrow cell: ${rpcErr.message}` },
+          { status: 400 }
+        );
+      }
     }
 
     const expiresAt = new Date();

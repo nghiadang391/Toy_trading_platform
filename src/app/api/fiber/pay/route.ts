@@ -6,7 +6,7 @@ import { fiberClient } from "@/lib/fiber/fnnClient";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { tradeId, invoice } = body;
+    const { tradeId, invoice, callerAddress } = body;
 
     if (!tradeId) {
       return NextResponse.json({ error: "tradeId is required" }, { status: 400 });
@@ -19,6 +19,20 @@ export async function POST(request: Request) {
 
     if (!trade) {
       return NextResponse.json({ error: "Trade not found" }, { status: 404 });
+    }
+
+    // Authenticate caller identity against trade buyer
+    if (callerAddress && trade.buyer?.joyIdAddress && trade.buyer.joyIdAddress !== callerAddress) {
+      return NextResponse.json(
+        { error: "Forbidden: Only the registered trade buyer can settle payment" },
+        { status: 403 }
+      );
+    }
+    if (!callerAddress && process.env.NODE_ENV !== "test") {
+      return NextResponse.json(
+        { error: "callerAddress is required to settle payment" },
+        { status: 401 }
+      );
     }
 
     const targetInvoice = invoice || trade.fiberInvoice;

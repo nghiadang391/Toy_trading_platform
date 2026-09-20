@@ -8,19 +8,32 @@ export async function POST(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { actorType } = body; // 'BUYER' or 'SELLER'
+    const { actorType, callerAddress } = body; // 'BUYER' or 'SELLER'
 
     if (!actorType || (actorType !== "BUYER" && actorType !== "SELLER")) {
       return NextResponse.json({ error: "Invalid actor type" }, { status: 400 });
     }
 
+    if (!callerAddress) {
+      return NextResponse.json({ error: "Missing required callerAddress" }, { status: 401 });
+    }
+
     const trade = await prisma.trade.findUnique({
       where: { id },
-      include: { listing: true },
+      include: { listing: true, buyer: true, seller: true },
     });
 
     if (!trade) {
       return NextResponse.json({ error: "Trade not found" }, { status: 404 });
+    }
+
+    // Verify caller authorization
+    if (actorType === "BUYER" && trade.buyer.joyIdAddress !== callerAddress) {
+      return NextResponse.json({ error: "Unauthorized: Caller is not the trade buyer" }, { status: 403 });
+    }
+
+    if (actorType === "SELLER" && trade.seller.joyIdAddress !== callerAddress) {
+      return NextResponse.json({ error: "Unauthorized: Caller is not the trade seller" }, { status: 403 });
     }
 
     const updateData: any = {};

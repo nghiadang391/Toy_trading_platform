@@ -316,6 +316,7 @@ export default function QrHandoverModal({
           body: JSON.stringify({
             tradeId,
             invoice: inputCode,
+            callerAddress: user?.joyIdAddress || tokenData?.buyerAddress,
           }),
         });
 

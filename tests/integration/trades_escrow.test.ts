@@ -3,6 +3,7 @@ import { POST as createTrade } from "../../src/app/api/trades/route";
 import { POST as settleQrHandover, GET as generateQrToken } from "../../src/app/api/trades/[id]/qr/route";
 import { POST as sweepExpiredTrades } from "../../src/app/api/trades/expire/route";
 import { POST as cancelTrade, GET as getCancelStatus } from "../../src/app/api/trades/[id]/cancel/route";
+import { POST as confirmTrade } from "../../src/app/api/trades/[id]/confirm/route";
 
 /**
  * IT-ESC Suite: Escrow & QR Handover End-to-End Integration Verification
@@ -409,5 +410,98 @@ describe("Trades & Escrow Integration Suite (IT-ESC)", () => {
 
     // Clean up
     await prisma.trade.delete({ where: { id: trade.id } });
+  });
+  test("[IT-ESC-010] Trade confirmation rejects unauthorized caller (Security Gap 1)", async () => {
+    const trade = await prisma.trade.create({
+      data: {
+        listingId: listing.id,
+        sellerId: seller.id,
+        buyerId: buyer.id,
+        priceFiat: 150,
+        priceCkb: BigInt("15000000000"),
+        exchangeRate: 0.02,
+        method: "MEETUP",
+        status: "ESCROW_FUNDED",
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+    });
+
+    // Intruder attempts to confirm on behalf of buyer
+    const intruderReq = new Request(`http://localhost:3000/api/trades/${trade.id}/confirm`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        actorType: "BUYER",
+        callerAddress: intruder.joyIdAddress,
+      }),
+    });
+
+    const res = await confirmTrade(intruderReq, { params: Promise.resolve({ id: trade.id }) });
+    expect(res.status).toBe(403);
+    const data = await res.json();
+    expect(data.error).toContain("Unauthorized: Caller is not the trade buyer");
+
+    await prisma.trade.delete({ where: { id: trade.id } });
+  });
+
+  test("[IT-ESC-011] Trade confirmation succeeds when authorized caller confirms (Security Gap 1)", async () => {
+    const trade = await prisma.trade.create({
+      data: {
+        listingId: listing.id,
+        sellerId: seller.id,
+        buyerId: buyer.id,
+        priceFiat: 150,
+        priceCkb: BigInt("15000000000"),
+        exchangeRate: 0.02,
+        method: "MEETUP",
+        status: "ESCROW_FUNDED",
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+    });
+
+    const buyerReq = new Request(`http://localhost:3000/api/trades/${trade.id}/confirm`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        actorType: "BUYER",
+        callerAddress: buyer.joyIdAddress,
+      }),
+    });
+
+    const res = await confirmTrade(buyerReq, { params: Promise.resolve({ id: trade.id }) });
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.buyerConfirmed).toBe(true);
+
+    await prisma.trade.delete({ where: { id: trade.id } });
+  });
+  test("[IT-ESC-012] Escrow creation rejects invalid or spent live cell on CKB (Security Gap 3)", async () => {
+    // Temporarily set NODE_ENV to production to test live cell verification logic
+    const originalEnv = process.env.NODE_ENV;
+    (process.env as any).NODE_ENV = "production";
+
+    try {
+      const invalidOutpointReq = new Request("http://localhost:3000/api/trades", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          listingId: listing.id,
+          buyerId: buyer.id,
+          method: "MEETUP",
+          priceFiat: 250,
+          priceCkb: "25000000000",
+          exchangeRate: 0.02,
+          escrowTxHash: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+          escrowCellOutpoint: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef:0",
+        }),
+      });
+
+      const res = await createTrade(invalidOutpointReq);
+      expect(res.status).toBe(400);
+      const data = await res.json();
+      expect(data.error).toBeDefined();
+    } finally {
+      (process.env as any).NODE_ENV = originalEnv;
+    }
   });
 });
