@@ -121,8 +121,8 @@ export async function POST(request: Request) {
     }
 
     // Run Safety Recall Check
-    const { checkToySafety } = await import("@/lib/safety/recall-checker");
-    const safetyResult = checkToySafety(title, description);
+    const { checkToySafetyAsync } = await import("@/lib/safety/recall-checker");
+    const safetyResult = await checkToySafetyAsync(title, description);
 
     // Reference price estimation mockup for MVP
     const referencePriceFiat = null;

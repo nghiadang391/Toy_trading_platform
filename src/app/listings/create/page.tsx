@@ -38,6 +38,8 @@ export default function CreateListingPage() {
   const [safetyCheck, setSafetyCheck] = useState<{
     isRecalled: boolean;
     recallReason: string | null;
+    recallUrl?: string | null;
+    severity?: "HIGH" | "MEDIUM" | "SAFE";
   } | null>(null);
 
   // Live safety recall validation
@@ -221,9 +223,21 @@ export default function CreateListingPage() {
             }`}
           >
             {safetyCheck.isRecalled ? (
-              <>
-                ⚠️ <strong>Safety Recall Alert:</strong> {safetyCheck.recallReason}
-              </>
+              <div>
+                <div>⚠️ <strong>Safety Recall Alert:</strong> {safetyCheck.recallReason}</div>
+                {safetyCheck.recallUrl && (
+                  <div style={{ marginTop: "6px" }}>
+                    <a
+                      href={safetyCheck.recallUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ textDecoration: "underline", color: "inherit", fontWeight: 500 }}
+                    >
+                      🔗 View Official CPSC Government Notice (Opens in new tab)
+                    </a>
+                  </div>
+                )}
+              </div>
             ) : (
               <>
                 🛡️ <strong>Safety Checked:</strong> No official recall warnings

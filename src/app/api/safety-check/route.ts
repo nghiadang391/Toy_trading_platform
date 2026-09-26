@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { checkToySafety } from "@/lib/safety/recall-checker";
+import { checkToySafetyAsync } from "@/lib/safety/recall-checker";
 
 // GET /api/safety-check?title=...&description=...
 export async function GET(request: Request) {
@@ -8,7 +8,7 @@ export async function GET(request: Request) {
     const title = searchParams.get("title") || "";
     const description = searchParams.get("description") || "";
 
-    const result = checkToySafety(title, description);
+    const result = await checkToySafetyAsync(title, description);
     return NextResponse.json(result);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
