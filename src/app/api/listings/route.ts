@@ -25,6 +25,15 @@ export async function GET(request: Request) {
             id: true,
             displayName: true,
             joyIdAddress: true,
+            ratingsReceived: {
+              select: {
+                score: true,
+              },
+            },
+            tradesAsSeller: {
+              where: { status: "COMPLETED" },
+              select: { id: true },
+            },
           },
         },
         trades: {
@@ -46,13 +55,33 @@ export async function GET(request: Request) {
       },
     });
 
-    // Parse imageUrls from JSON string for SQLite compatibility
-    const parsed = listings.map((l) => ({
-      ...l,
-      imageUrls: (() => {
-        try { return JSON.parse(l.imageUrls as string); } catch { return []; }
-      })(),
-    }));
+    // Parse imageUrls from JSON string and compute seller reputation metrics
+    const parsed = listings.map((l) => {
+      const ratings = l.seller?.ratingsReceived || [];
+      const reviewCount = ratings.length;
+      const averageRating =
+        reviewCount > 0
+          ? Number((ratings.reduce((acc, r) => acc + r.score, 0) / reviewCount).toFixed(1))
+          : null;
+      const completedTradesCount = l.seller?.tradesAsSeller?.length || 0;
+
+      return {
+        ...l,
+        imageUrls: (() => {
+          try { return JSON.parse(l.imageUrls as string); } catch { return []; }
+        })(),
+        seller: l.seller
+          ? {
+              id: l.seller.id,
+              displayName: l.seller.displayName,
+              joyIdAddress: l.seller.joyIdAddress,
+              rating: averageRating,
+              reviewCount,
+              completedTrades: completedTradesCount,
+            }
+          : null,
+      };
+    });
 
     return NextResponse.json(parsed);
   } catch (error: any) {

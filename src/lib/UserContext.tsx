@@ -16,6 +16,7 @@ interface UserContextType {
   connecting: boolean;
   connectWallet: () => Promise<UserProfile | null>;
   disconnectWallet: () => void;
+  updateProfile: (displayName: string, region?: "UK" | "VIETNAM") => Promise<{ success: boolean; error?: string }>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -102,6 +103,33 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function updateProfile(displayName: string, region?: "UK" | "VIETNAM"): Promise<{ success: boolean; error?: string }> {
+    if (!user) return { success: false, error: "No wallet connected" };
+    try {
+      const res = await fetch("/api/users/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          joyIdAddress: user.joyIdAddress,
+          displayName,
+          region: region || user.region,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        return { success: false, error: data.error || "Failed to update profile" };
+      }
+
+      setUser(data);
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
+      return { success: true };
+    } catch (err: any) {
+      console.error("Failed to update profile:", err);
+      return { success: false, error: err.message || "Network request failed" };
+    }
+  }
+
   function disconnectWallet() {
     setUser(null);
     try {
@@ -118,6 +146,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         connecting,
         connectWallet,
         disconnectWallet,
+        updateProfile,
       }}
     >
       {children}

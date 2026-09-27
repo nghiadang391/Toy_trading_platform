@@ -12,12 +12,21 @@ function getLibSqlConfig() {
     };
   }
 
-  const url = process.env.TURSO_DATABASE_URL || process.env.DATABASE_URL;
+  // Prefer TURSO_DATABASE_URL or libsql/file URLs; ignore postgres strings that don't match SQLite/LibSQL adapter
+  const tursoUrl = process.env.TURSO_DATABASE_URL;
+  const dbUrl = process.env.DATABASE_URL;
   const authToken = process.env.TURSO_AUTH_TOKEN;
 
-  if (url && (url.startsWith("libsql:") || url.startsWith("https:") || authToken)) {
+  if (tursoUrl && (tursoUrl.startsWith("libsql:") || tursoUrl.startsWith("https:"))) {
     return {
-      url,
+      url: tursoUrl,
+      authToken,
+    };
+  }
+
+  if (dbUrl && (dbUrl.startsWith("libsql:") || dbUrl.startsWith("file:"))) {
+    return {
+      url: dbUrl,
       authToken,
     };
   }

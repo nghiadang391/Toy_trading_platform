@@ -27,8 +27,12 @@ interface Listing {
   status: string;
   sellerId: string;
   seller: {
+    id?: string;
     displayName: string;
     joyIdAddress: string;
+    rating?: number | null;
+    reviewCount?: number;
+    completedTrades?: number;
   };
   sporeDobId?: string | null;
   trades?: Array<{ id: string }>;
@@ -192,13 +196,32 @@ export default function ListingsPage() {
                     </button>
                   </div>
 
-                  <div className="footer-row">
-                    <span className="seller">
-                      {t("listedBy")}{" "}
-                      <strong className="text-white">
-                        {isOwnListing ? "You" : item.seller?.displayName || "Passkey User"}
-                      </strong>
-                    </span>
+                  <div className="footer-row flex items-center justify-between pt-2 border-t border-white/5 text-xs">
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-[#00ff87] to-[#60efff] text-black font-bold flex items-center justify-center text-[10px]">
+                        {(item.seller?.displayName || "U").charAt(0).toUpperCase()}
+                      </div>
+                      <span className="seller text-white/70">
+                        {t("listedBy")}{" "}
+                        <strong className="text-white font-medium">
+                          {isOwnListing ? "You" : item.seller?.displayName || "Passkey User"}
+                        </strong>
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      {item.seller?.rating !== undefined && item.seller?.rating !== null ? (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-yellow-400/10 text-yellow-400 font-semibold text-[11px] border border-yellow-400/20">
+                          <span>★</span>
+                          <span>{item.seller.rating}</span>
+                          <span className="text-white/40 font-normal">({item.seller.reviewCount})</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-white/5 text-white/40 text-[10px] border border-white/10">
+                          {t("newTrader")}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

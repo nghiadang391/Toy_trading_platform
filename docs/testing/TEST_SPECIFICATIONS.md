@@ -11,13 +11,14 @@
 | Module Code | Domain Feature Area | Specification Prefix | Test Files | Total Test Cases |
 |---|---|---|---|---|
 | **ESC** | Escrow, Dual-Lock & In-Person QR Handover | `UT-ESC-xxx`, `IT-ESC-xxx`, `IT-SEC-xxx` | `tests/unit/escrow_lock.test.ts`, `tests/escrow.test.ts`, `tests/integration/trades_escrow.test.ts`, `tests/api_comprehensive.test.ts` | 26 tests |
-| **USR** | JoyID Passkey Auth & User Profiles | `IT-USR-xxx`, `UT-AUT-xxx` | `tests/api_comprehensive.test.ts`, `tests/auth.test.ts` | 4 tests |
-| **LST** | Toy Listings, Legacy Normalization & Query | `IT-LST-xxx` | `tests/api_comprehensive.test.ts`, `tests/api.test.ts` | 5 tests |
+| **USR** | JoyID Passkey Auth & User Profiles | `IT-USR-xxx`, `UT-AUT-xxx` | `tests/api_comprehensive.test.ts`, `tests/auth.test.ts`, `tests/integration/user_profile_and_ratings.test.ts` | 7 tests |
+| **LST** | Toy Listings, Reputation Metrics & Query | `IT-LST-xxx`, `IT-DAT-xxx` | `tests/api_comprehensive.test.ts`, `tests/api.test.ts`, `tests/integration/user_profile_and_ratings.test.ts` | 6 tests |
+| **RAT** | Mutual Trade Ratings & Reviews | `IT-RAT-xxx` | `tests/integration/user_profile_and_ratings.test.ts` | 6 tests |
 | **PAY** | Fiber Network Lightning Payments | `IT-PAY-xxx` | `tests/fiber.test.ts` | 5 tests |
 | **PAS** | Spore DOB Toy Passports & Ownership Logs | `IT-PAS-xxx` | `tests/spore.test.ts`, `tests/api_comprehensive.test.ts` | 2 tests |
 | **UI** | Client Error Boundary & Render Guard | `UT-UI-xxx` | `tests/errorBoundary.test.ts` | 4 tests |
 | **REC** | Two-Tier Toy Safety Recall Engine (CPSC) | `UT-REC-xxx` | `tests/recall_checker.test.ts` | 5 tests |
-| **TOTAL** | **Entire Test Suite Coverage** | | **10 Test Suites** | **51 Test Cases** |
+| **TOTAL** | **Entire Test Suite Coverage** | | **11 Test Suites** | **61 Test Cases** |
 
 ---
 
@@ -206,6 +207,28 @@
 - **Expected Outcome**:
   - HTTP 200 OK. System defensively normalizes short code `"VN"` to Prisma enum `"VIETNAM"`.
 
+### `[IT-USR-003]` User Profile Name & Region Update
+- **Target Component**: `PATCH /api/users/profile`
+- **Traceability**: `REQ-USR-003` | `SPEC-USR-002`
+- **Input**: `joyIdAddress`, `displayName: "Alice Toy Boutique"`, `region: "VIETNAM"`.
+- **Expected Outcome**:
+  - HTTP 200 OK. Updates and persists new displayName and region in database.
+
+### `[IT-USR-004]` Invalid Profile Name Validation
+- **Target Component**: `PATCH /api/users/profile`
+- **Traceability**: `REQ-USR-003` | `SPEC-USR-002`
+- **Input**: `displayName: " "` (< 2 characters).
+- **Expected Outcome**:
+  - HTTP 400 Bad Request with error stating display name must be at least 2 characters.
+
+### `[IT-USR-005]` First-Time Connected Wallet Profile Upsert
+- **Target Component**: `PATCH /api/users/profile`
+- **Traceability**: `REQ-USR-003` | `SPEC-USR-002`
+- **Preconditions**: Wallet connecting for the first time without prior database registration.
+- **Input**: `joyIdAddress`, `displayName: "Ghost Rider"`, `region: "UK"`.
+- **Expected Outcome**:
+  - HTTP 200 OK. Automatically provisions a new user record and sets profile details.
+
 ### `[UT-AUT-001]` Development Cryptographic Signature Validation
 - **Target Component**: `verifySignature(message, signature, address)`
 - **Traceability**: `REQ-SEC-001` | `SPEC-AUT-001`
@@ -245,6 +268,15 @@
 - **Traceability**: `REQ-LST-004` | `SPEC-LST-002`
 - **Expected Outcome**: HTTP 200 OK returning array of active toy listings.
 
+### `[IT-LST-006]` Seller Reputation Metrics Aggregation
+- **Target Component**: `GET /api/listings`
+- **Traceability**: `REQ-LST-006` | `SPEC-LST-003`
+- **Expected Outcome**:
+  - HTTP 200 OK. Computes and returns seller reputation profile on each listing:
+  - `seller.rating` (average star rating rounded to 1 decimal place).
+  - `seller.reviewCount` (number of verified ratings received).
+  - `seller.completedTrades` (count of successfully completed trades as seller).
+
 ### `[IT-DAT-001]` Database Models & Schema Sanity
 - **Target Component**: `tests/api.test.ts`
 - **Traceability**: `REQ-DAT-001`
@@ -252,7 +284,54 @@
 
 ---
 
-## 4. Fiber Network Payment Module (`PAY`)
+## 4. Mutual Trade Ratings & Reviews Module (`RAT`)
+
+### `[IT-RAT-001]` Buyer Review & Rating Submission
+- **Target Component**: `POST /api/trades/[id]/rate`
+- **Traceability**: `REQ-RAT-001` | `SPEC-RAT-001`
+- **Preconditions**: Trade is in `COMPLETED` status.
+- **Input**: `callerAddress: buyerAddress`, `score: 5`, `comment: "Gundam in perfect condition, prompt handover!"`.
+- **Expected Outcome**:
+  - HTTP 201 Created. Rating persisted with `raterId = buyer.id` and `ratedUserId = seller.id`.
+
+### `[IT-RAT-002]` Seller Mutual Review Submission
+- **Target Component**: `POST /api/trades/[id]/rate`
+- **Traceability**: `REQ-RAT-001` | `SPEC-RAT-001`
+- **Preconditions**: Trade is in `COMPLETED` status.
+- **Input**: `callerAddress: sellerAddress`, `score: 5`, `comment: "Great buyer, very polite and on time."`.
+- **Expected Outcome**:
+  - HTTP 201 Created. Rating persisted with `raterId = seller.id` and `ratedUserId = buyer.id`.
+
+### `[IT-RAT-003]` Duplicate Review Prevention
+- **Target Component**: `POST /api/trades/[id]/rate`
+- **Traceability**: `REQ-RAT-002` | `SPEC-RAT-001`
+- **Preconditions**: Caller has already submitted a review for this trade.
+- **Expected Outcome**:
+  - HTTP 400 Bad Request with error stating user has already submitted a rating for this trade.
+
+### `[IT-RAT-004]` Unauthorized Counterparty Rejection
+- **Target Component**: `POST /api/trades/[id]/rate`
+- **Traceability**: `REQ-RAT-003` | `SPEC-RAT-001`
+- **Preconditions**: Caller is an uninvolved third party (neither buyer nor seller).
+- **Expected Outcome**:
+  - HTTP 403 Forbidden with error stating caller is neither buyer nor seller.
+
+### `[IT-RAT-005]` Incomplete Trade Review Rejection
+- **Target Component**: `POST /api/trades/[id]/rate`
+- **Traceability**: `REQ-RAT-004` | `SPEC-RAT-001`
+- **Preconditions**: Trade status is `PENDING` or `ESCROW_FUNDED`.
+- **Expected Outcome**:
+  - HTTP 400 Bad Request with error stating reviews can only be submitted for COMPLETED trades.
+
+### `[IT-RAT-006]` Trade Ratings Retrieval
+- **Target Component**: `GET /api/trades/[id]/rate`
+- **Traceability**: `REQ-RAT-005` | `SPEC-RAT-002`
+- **Expected Outcome**:
+  - HTTP 200 OK returning array of rating objects including rater and rated counterparty details.
+
+---
+
+## 5. Fiber Network Payment Module (`PAY`)
 
 ### `[IT-PAY-001]` Fiber Lightning Invoice Creation
 - **Target Component**: `fiberClient.createInvoice(amount, description)`
@@ -282,7 +361,7 @@
 
 ---
 
-## 5. UI Error Boundaries & Render Safety (`UI`)
+## 6. UI Error Boundaries & Render Safety (`UI`)
 
 ### `[UT-UI-001]` Error Boundary State Derivation
 - **Target Component**: `ErrorBoundary.getDerivedStateFromError(error)`
@@ -307,7 +386,7 @@
 
 ---
 
-## 6. Two-Tier Toy Safety Recall Engine (`REC`)
+## 7. Two-Tier Toy Safety Recall Engine (`REC`)
 
 ### `[UT-REC-001]` Tier 1: Instant Local Hazard Pattern Detection
 - **Target Component**: `checkToySafety(title, description)`
@@ -345,7 +424,7 @@
 
 ---
 
-## 7. Toy Passport & Spore DOB Module (`PAS`)
+## 8. Toy Passport & Spore DOB Module (`PAS`)
 
 ### `[IT-PAS-001]` Spore DOB Mint Transaction Skeleton Construction
 - **Target Component**: `prepareMintToyPassport(sellerAddress, toyMetadata)` (`tests/spore.test.ts`)

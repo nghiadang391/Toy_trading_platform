@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useUser } from "@/lib/UserContext";
 import { QRCodeSVG } from "qrcode.react";
+import TradeRatingModal from "@/components/trade/TradeRatingModal";
 
 interface QrHandoverModalProps {
   tradeId: string;
@@ -23,6 +24,9 @@ export default function QrHandoverModal({
   const [activeTab, setActiveTab] = useState<"SHOW_QR" | "SCAN_QR">("SHOW_QR");
   const [paymentMode, setPaymentMode] = useState<"FIBER" | "CKB_L1">("FIBER");
   const [isFallbackActive, setIsFallbackActive] = useState(false);
+
+  // Review & Rating Modal states
+  const [showRatingModal, setShowRatingModal] = useState(false);
 
   // Fiber invoice & L1 token states
   const [fiberData, setFiberData] = useState<any>(null);
@@ -323,6 +327,8 @@ export default function QrHandoverModal({
         const data = await res.json();
         if (res.ok && data.success) {
           setMessage(t("handoverSuccess"));
+          setTradeStatus("COMPLETED");
+          setTimeout(() => setShowRatingModal(true), 1200);
           if (onSuccess) onSuccess();
         } else {
           setError(data.error || "Fiber payment verification failed");
@@ -341,6 +347,8 @@ export default function QrHandoverModal({
         const data = await res.json();
         if (res.ok) {
           setMessage(data.message || t("handoverSuccess"));
+          setTradeStatus("COMPLETED");
+          setTimeout(() => setShowRatingModal(true), 1200);
           if (onSuccess) onSuccess();
         } else {
           setError(data.error || "Verification failed");
@@ -380,6 +388,37 @@ export default function QrHandoverModal({
           <div className="alert warning fallback-alert">
             <span className="fallback-icon">⚡→🔒</span>
             <span>{t("switchingToFallback")}</span>
+          </div>
+        )}
+
+        {/* Counterparty Identity Card */}
+        {tokenData && (
+          <div className="mx-6 mt-3 p-3 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-full bg-blue-500/20 text-blue-400 font-bold flex items-center justify-center border border-blue-500/30">
+                {(tokenData.sellerName || "S").charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <div className="text-[10px] text-white/50 uppercase font-semibold">{t("sellerRole")}</div>
+                <div className="text-white font-medium truncate max-w-[120px]">
+                  {tokenData.sellerName || "Seller"}
+                </div>
+              </div>
+            </div>
+
+            <div className="text-white/30 font-bold text-sm">⇄</div>
+
+            <div className="flex items-center gap-2 text-right">
+              <div>
+                <div className="text-[10px] text-white/50 uppercase font-semibold">{t("buyerRole")}</div>
+                <div className="text-white font-medium truncate max-w-[120px]">
+                  {tokenData.buyerName || "Buyer"}
+                </div>
+              </div>
+              <div className="w-7 h-7 rounded-full bg-[#00ff87]/20 text-[#00ff87] font-bold flex items-center justify-center border border-[#00ff87]/30">
+                {(tokenData.buyerName || "B").charAt(0).toUpperCase()}
+              </div>
+            </div>
           </div>
         )}
 
@@ -661,6 +700,25 @@ export default function QrHandoverModal({
           </div>
         </div>
       </div>
+
+      {/* Post-Trade Mutual Rating Modal */}
+      <TradeRatingModal
+        tradeId={tokenData?.tradeId || tradeId}
+        isOpen={showRatingModal}
+        counterpartyName={
+          user?.joyIdAddress === tokenData?.buyerAddress
+            ? tokenData?.sellerName
+            : tokenData?.buyerName
+        }
+        counterpartyRole={
+          user?.joyIdAddress === tokenData?.buyerAddress ? "Seller" : "Buyer"
+        }
+        onClose={() => setShowRatingModal(false)}
+        onSuccess={() => {
+          setShowRatingModal(false);
+          if (onSuccess) onSuccess();
+        }}
+      />
 
       <style jsx>{`
         .modal-overlay {

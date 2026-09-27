@@ -56,7 +56,9 @@ export async function GET(
       expiresAt: expiresAt.toISOString(),
       toyTitle: trade.listing.title,
       sellerAddress: trade.seller.joyIdAddress,
+      sellerName: trade.seller.displayName,
       buyerAddress: trade.buyer.joyIdAddress,
+      buyerName: trade.buyer.displayName,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
