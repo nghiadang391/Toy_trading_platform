@@ -4,8 +4,13 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaLibSql } from "@prisma/adapter-libsql";
 
 function getLibSqlConfig() {
-  // If running in Jest test runner, strictly use the dedicated test database
-  if (process.env.NODE_ENV === "test" && process.env.TEST_DATABASE_URL) {
+  // If running in Jest test runner, Playwright test server, or explicitly requested, strictly use the dedicated test database
+  const isTestEnvironment =
+    process.env.NODE_ENV === "test" ||
+    process.env.APP_ENV === "test" ||
+    process.env.USE_TEST_DB === "true";
+
+  if (isTestEnvironment && process.env.TEST_DATABASE_URL) {
     return {
       url: process.env.TEST_DATABASE_URL,
       authToken: process.env.TEST_TURSO_AUTH_TOKEN,

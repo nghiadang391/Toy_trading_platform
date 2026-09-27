@@ -57,4 +57,13 @@ test.describe("Real Browser E2E: Listing Creation Flow", () => {
     // 8. Verify the newly created item appears in the marketplace
     await expect(page.locator("body")).toContainText(safeTitle, { timeout: 10000 });
   });
+
+  test.afterAll(async ({ request }) => {
+    // Automatically delete test listings and user created during this browser session
+    try {
+      await request.delete(`/api/listings?address=${testAddress}`);
+    } catch {
+      // Ignore cleanup error in test tear-down
+    }
+  });
 });

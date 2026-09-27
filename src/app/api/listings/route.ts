@@ -209,3 +209,38 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+// DELETE /api/listings - Clean up test listings (test/dev only)
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const address = searchParams.get("address");
+
+    if (!address || (!address.startsWith("ckt1_browser_") && !address.startsWith("ckt1_smoke_"))) {
+      return NextResponse.json({ error: "Only test listings can be deleted" }, { status: 400 });
+    }
+
+    const testListings = await prisma.listing.findMany({
+      where: {
+        seller: { joyIdAddress: address },
+      },
+      select: { id: true },
+    });
+
+    const ids = testListings.map((l) => l.id);
+    if (ids.length > 0) {
+      await prisma.passportLog.deleteMany({ where: { listingId: { in: ids } } });
+      await prisma.chatMessage.deleteMany({ where: { room: { listingId: { in: ids } } } });
+      await prisma.chatRoom.deleteMany({ where: { listingId: { in: ids } } });
+      await prisma.rating.deleteMany({ where: { trade: { listingId: { in: ids } } } });
+      await prisma.trade.deleteMany({ where: { listingId: { in: ids } } });
+      await prisma.listing.deleteMany({ where: { id: { in: ids } } });
+    }
+
+    await prisma.user.deleteMany({ where: { joyIdAddress: address } });
+
+    return NextResponse.json({ success: true, deletedCount: ids.length });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
