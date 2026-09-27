@@ -43,3 +43,5 @@ generate_deck.sh
 
 # Test & coverage artifacts
 coverage/
+test-results/
+playwright-report/

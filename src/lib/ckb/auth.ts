@@ -21,16 +21,28 @@ export async function verifySignature(
   try {
     // If the signature payload is a JSON string, it is a JoyID signature package
     if (signature.trim().startsWith("{")) {
-      const { signatureData, clientData } = JSON.parse(signature);
-      
-      // Parse address to retrieve public key or parse directly
-      // ccc.verifyMessageJoyId(challenge, signatureDataJson, clientDataJson)
-      // verifyMessageJoyId returns true if the signature is cryptographically valid
-      return await ccc.verifyMessageJoyId(
-        message,
-        JSON.stringify(signatureData),
-        JSON.stringify(clientData)
-      );
+      const parsed = JSON.parse(signature);
+
+      // 1. Direct JoyID SignMessageResponseData verification (from signChallenge)
+      if (parsed.signature && (parsed.pubkey || parsed.publicKey)) {
+        try {
+          const { verifySignature: joyidVerify } = await import("@joyid/ckb");
+          const isValid = await joyidVerify(parsed);
+          if (isValid) return true;
+        } catch (joyidErr) {
+          console.warn("JoyID native verification attempt error:", joyidErr);
+        }
+      }
+
+      // 2. Fallback CCC JoyID verification
+      const { signatureData, clientData } = parsed;
+      if (signatureData && clientData) {
+        return await ccc.verifyMessageJoyId(
+          message,
+          typeof signatureData === "string" ? signatureData : JSON.stringify(signatureData),
+          typeof clientData === "string" ? clientData : JSON.stringify(clientData)
+        );
+      }
     }
 
     // 2. Standard CKB Secp256k1 Message signing

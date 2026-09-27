@@ -153,7 +153,37 @@ export default function CreateListingPage() {
       }
 
       const message = `create-listing:${title}:${parseFloat(priceFiat)}`;
-      const signature = `mock-sig-${activeUser.joyIdAddress}`;
+      
+      let signature: string;
+      // In automated browser testing (e.g. Playwright) or test mock wallet, bypass popup hang
+      if (typeof window !== "undefined" && (window as any).__MOCK_JOYID__) {
+        signature = `mock-sig-${activeUser.joyIdAddress}`;
+      } else {
+        try {
+          const { signChallenge, initConfig } = await import("@joyid/ckb");
+          initConfig({
+            name: "ToyTrade",
+            joyidAppURL: "https://testnet.joyid.dev",
+          });
+
+          const signRes = await signChallenge(message, activeUser.joyIdAddress);
+          signature = JSON.stringify(signRes);
+        } catch (signErr: any) {
+          // If user cancelled passkey popup or in dev fallback
+          if (
+            process.env.NODE_ENV !== "production" &&
+            (activeUser.joyIdAddress.startsWith("ckt1_") || activeUser.joyIdAddress.includes("mock") || activeUser.joyIdAddress.includes("test"))
+          ) {
+            console.warn("Using dev mock signature fallback for test wallet:", signErr);
+            signature = `mock-sig-${activeUser.joyIdAddress}`;
+          } else {
+            setErrorMessage(signErr?.message || "Passkey signature request was cancelled. Please authorize with your JoyID passkey to list this item.");
+            setSubmitting(false);
+            return;
+          }
+        }
+      }
+
       const imageUrls = mediaList.map((m) => m.url);
 
       const res = await fetch("/api/listings", {
