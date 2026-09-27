@@ -201,6 +201,10 @@ describe("Trades & Escrow Integration Suite (IT-ESC)", () => {
     // Clean up
     await prisma.passportLog.deleteMany({ where: { listingId: listing.id } });
     await prisma.trade.delete({ where: { id: trade.id } });
+    await prisma.listing.update({
+      where: { id: listing.id },
+      data: { status: "ACTIVE" },
+    });
   });
 
   test("[IT-ESC-004] Unauthorized Scanner Rejection (REQ-ESC-005 / SPEC-ESC-003)", async () => {
@@ -293,9 +297,25 @@ describe("Trades & Escrow Integration Suite (IT-ESC)", () => {
   });
 
   test("[IT-ESC-007] Buyer Rejection & Cancellation Request (Option B Mutual Cancel)", async () => {
+    const testListing = await prisma.listing.create({
+      data: {
+        title: "IT Gundam Cancel Test",
+        description: "Fixture for cancel request",
+        priceFiat: 250,
+        currency: "GBP",
+        condition: "LIKE_NEW",
+        category: "ACTION_FIGURES",
+        imageUrls: "[]",
+        tradeMethod: "MEETUP",
+        shippingRegion: "UK",
+        sellerId: seller.id,
+        status: "RESERVED",
+      },
+    });
+
     const trade = await prisma.trade.create({
       data: {
-        listingId: listing.id,
+        listingId: testListing.id,
         sellerId: seller.id,
         buyerId: buyer.id,
         priceFiat: 250,
@@ -328,18 +348,29 @@ describe("Trades & Escrow Integration Suite (IT-ESC)", () => {
 
     // Clean up
     await prisma.trade.delete({ where: { id: trade.id } });
+    await prisma.listing.delete({ where: { id: testListing.id } });
   });
 
   test("[IT-ESC-008] Seller In-Hand Possession Confirmation & Escrow Refund (Option B Mutual Cancel)", async () => {
-    // Put listing in RESERVED
-    await prisma.listing.update({
-      where: { id: listing.id },
-      data: { status: "RESERVED" },
+    const testListing = await prisma.listing.create({
+      data: {
+        title: "IT Gundam Confirm Cancel Test",
+        description: "Fixture for confirm cancel",
+        priceFiat: 250,
+        currency: "GBP",
+        condition: "LIKE_NEW",
+        category: "ACTION_FIGURES",
+        imageUrls: "[]",
+        tradeMethod: "MEETUP",
+        shippingRegion: "UK",
+        sellerId: seller.id,
+        status: "RESERVED",
+      },
     });
 
     const trade = await prisma.trade.create({
       data: {
-        listingId: listing.id,
+        listingId: testListing.id,
         sellerId: seller.id,
         buyerId: buyer.id,
         priceFiat: 250,
@@ -370,17 +401,35 @@ describe("Trades & Escrow Integration Suite (IT-ESC)", () => {
     expect(data.trade.status).toBe("CANCELLED");
 
     // Verify listing was restored to ACTIVE
-    const restoredListing = await prisma.listing.findUnique({ where: { id: listing.id } });
+    const restoredListing = await prisma.listing.findUnique({ where: { id: testListing.id } });
     expect(restoredListing?.status).toBe("ACTIVE");
 
     // Clean up
+    await prisma.passportLog.deleteMany({ where: { listingId: testListing.id } });
     await prisma.trade.delete({ where: { id: trade.id } });
+    await prisma.listing.delete({ where: { id: testListing.id } });
   });
 
   test("[IT-ESC-009] Unauthorized Third-Party Cancellation Rejection", async () => {
+    const testListing = await prisma.listing.create({
+      data: {
+        title: "IT Gundam Intruder Cancel Test",
+        description: "Fixture for unauthorized cancel",
+        priceFiat: 250,
+        currency: "GBP",
+        condition: "LIKE_NEW",
+        category: "ACTION_FIGURES",
+        imageUrls: "[]",
+        tradeMethod: "MEETUP",
+        shippingRegion: "UK",
+        sellerId: seller.id,
+        status: "RESERVED",
+      },
+    });
+
     const trade = await prisma.trade.create({
       data: {
-        listingId: listing.id,
+        listingId: testListing.id,
         sellerId: seller.id,
         buyerId: buyer.id,
         priceFiat: 250,
@@ -410,11 +459,29 @@ describe("Trades & Escrow Integration Suite (IT-ESC)", () => {
 
     // Clean up
     await prisma.trade.delete({ where: { id: trade.id } });
+    await prisma.listing.delete({ where: { id: testListing.id } });
   });
+
   test("[IT-ESC-010] Trade confirmation rejects unauthorized caller (Security Gap 1)", async () => {
+    const testListing = await prisma.listing.create({
+      data: {
+        title: "IT Gundam Confirm Guard Test",
+        description: "Fixture for confirm guard",
+        priceFiat: 150,
+        currency: "GBP",
+        condition: "LIKE_NEW",
+        category: "ACTION_FIGURES",
+        imageUrls: "[]",
+        tradeMethod: "MEETUP",
+        shippingRegion: "UK",
+        sellerId: seller.id,
+        status: "RESERVED",
+      },
+    });
+
     const trade = await prisma.trade.create({
       data: {
-        listingId: listing.id,
+        listingId: testListing.id,
         sellerId: seller.id,
         buyerId: buyer.id,
         priceFiat: 150,
@@ -442,12 +509,29 @@ describe("Trades & Escrow Integration Suite (IT-ESC)", () => {
     expect(data.error).toContain("Unauthorized: Caller is not the trade buyer");
 
     await prisma.trade.delete({ where: { id: trade.id } });
+    await prisma.listing.delete({ where: { id: testListing.id } });
   });
 
   test("[IT-ESC-011] Trade confirmation succeeds when authorized caller confirms (Security Gap 1)", async () => {
+    const testListing = await prisma.listing.create({
+      data: {
+        title: "IT Gundam Confirm Success Test",
+        description: "Fixture for confirm success",
+        priceFiat: 150,
+        currency: "GBP",
+        condition: "LIKE_NEW",
+        category: "ACTION_FIGURES",
+        imageUrls: "[]",
+        tradeMethod: "MEETUP",
+        shippingRegion: "UK",
+        sellerId: seller.id,
+        status: "RESERVED",
+      },
+    });
+
     const trade = await prisma.trade.create({
       data: {
-        listingId: listing.id,
+        listingId: testListing.id,
         sellerId: seller.id,
         buyerId: buyer.id,
         priceFiat: 150,
@@ -474,7 +558,9 @@ describe("Trades & Escrow Integration Suite (IT-ESC)", () => {
     expect(data.buyerConfirmed).toBe(true);
 
     await prisma.trade.delete({ where: { id: trade.id } });
+    await prisma.listing.delete({ where: { id: testListing.id } });
   });
+
   test("[IT-ESC-012] Escrow creation rejects invalid or spent live cell on CKB (Security Gap 3)", async () => {
     // Temporarily set NODE_ENV to production to test live cell verification logic
     const originalEnv = process.env.NODE_ENV;

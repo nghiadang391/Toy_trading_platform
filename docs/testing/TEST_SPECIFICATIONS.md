@@ -18,7 +18,8 @@
 | **PAS** | Spore DOB Toy Passports & Ownership Logs | `IT-PAS-xxx` | `tests/spore.test.ts`, `tests/api_comprehensive.test.ts` | 2 tests |
 | **UI** | Client Error Boundary & Render Guard | `UT-UI-xxx` | `tests/errorBoundary.test.ts` | 4 tests |
 | **REC** | Two-Tier Toy Safety Recall Engine (CPSC) | `UT-REC-xxx` | `tests/recall_checker.test.ts` | 5 tests |
-| **TOTAL** | **Entire Test Suite Coverage** | | **11 Test Suites** | **61 Test Cases** |
+| **E2E** | Live Server Smoke End-to-End Suite | `E2E-SMK-xxx` | `tests/e2e/smoke.test.ts` | 8 tests |
+| **TOTAL** | **Entire Test Suite Coverage** | | **12 Test Suites** | **68 Test Cases** |
 
 ---
 
@@ -435,3 +436,48 @@
 - **Target Component**: `POST /api/fiber/pay` & `POST /api/trades/[id]/qr` (`tests/api_comprehensive.test.ts`)
 - **Traceability**: `REQ-PAS-002` | `SPEC-PAS-002`
 - **Expected Outcome**: Creates immutable `PassportLog` entry recording ownership transfer to the buyer upon payment settlement.
+
+---
+
+## 9. Live Smoke End-to-End Module (`E2E`)
+
+### `[E2E-SMK-001]` App Homepage Boot
+- **Target Component**: `GET /` (`tests/e2e/smoke.test.ts`)
+- **Traceability**: `REQ-SYS-001`
+- **Expected Outcome**: HTTP 200 OK with HTML document containing `"ToyTrade"` title.
+
+### `[E2E-SMK-002]` Live Database Query
+- **Target Component**: `GET /api/listings` (`tests/e2e/smoke.test.ts`)
+- **Traceability**: `REQ-LST-004`
+- **Expected Outcome**: HTTP 200 OK returning array of active toy listings from live database.
+
+### `[E2E-SMK-003]` First-Time User Provisioning
+- **Target Component**: `PATCH /api/users/profile` (`tests/e2e/smoke.test.ts`)
+- **Traceability**: `REQ-USR-003`
+- **Expected Outcome**: HTTP 200 OK automatically creating user record with provided display name and normalized region.
+
+### `[E2E-SMK-004]` User Profile Update
+- **Target Component**: `PATCH /api/users/profile` (`tests/e2e/smoke.test.ts`)
+- **Traceability**: `REQ-USR-003`
+- **Expected Outcome**: HTTP 200 OK updating existing user record with modified profile details.
+
+### `[E2E-SMK-005]` Listing Creation Pipeline
+- **Target Component**: `POST /api/listings` (`tests/e2e/smoke.test.ts`)
+- **Traceability**: `REQ-LST-001`
+- **Expected Outcome**: HTTP 201 Created persisting new listing in `ACTIVE` status with verified caller signature.
+
+### `[E2E-SMK-006]` Escrow Trade Initiation
+- **Target Component**: `POST /api/trades` (`tests/e2e/smoke.test.ts`)
+- **Traceability**: `REQ-ESC-001`
+- **Expected Outcome**: HTTP 201 Created creating trade in `ESCROW_FUNDED` state and locking listing in `RESERVED`.
+
+### `[E2E-SMK-007]` Live External Price Feed Integration
+- **Target Component**: `GET /api/price/ckb` (`tests/e2e/smoke.test.ts`)
+- **Traceability**: `REQ-PAY-004`
+- **Expected Outcome**: HTTP 200 OK returning positive numerical exchange rate from external market feed.
+
+### `[E2E-SMK-008]` Static Asset and Routing Delivery
+- **Target Component**: `GET /listings` (`tests/e2e/smoke.test.ts`)
+- **Traceability**: `REQ-SYS-002`
+- **Expected Outcome**: HTTP 200 OK delivering compiled page bundle and styles.
+
