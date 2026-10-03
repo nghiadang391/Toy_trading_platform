@@ -2,6 +2,18 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ToyCondition, ToyCategory, TradeMethod, Region, Currency } from "@prisma/client";
 
+// In-memory server cache for ultra-fast response times (<10ms)
+interface CacheEntry {
+  data: any;
+  timestamp: number;
+}
+const serverListingsCache = new Map<string, CacheEntry>();
+const CACHE_TTL_MS = 15000; // 15 seconds TTL
+
+export function invalidateListingsCache() {
+  serverListingsCache.clear();
+}
+
 // GET /api/listings - Retrieve listings with filters
 export async function GET(request: Request) {
   try {
@@ -12,11 +24,31 @@ export async function GET(request: Request) {
     const status = searchParams.get("status");
     const search = searchParams.get("search") || searchParams.get("q");
 
+    // Check memory cache
+    const cacheKey = JSON.stringify({ region, category, condition, status, search: search?.trim() });
+    const cached = serverListingsCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      return NextResponse.json(cached.data, {
+        headers: {
+          "X-Cache": "HIT",
+          "Cache-Control": "public, s-maxage=10, stale-while-revalidate=30",
+        },
+      });
+    }
+
     const whereClause: any = {};
     if (region) whereClause.shippingRegion = region;
     if (category) whereClause.category = category;
     if (condition) whereClause.condition = condition;
-    if (status) whereClause.status = status;
+
+    if (status) {
+      if (status !== "ALL") {
+        whereClause.status = status;
+      }
+    } else {
+      // Default: Exclude TRADED items. Cancelled listings (status: ACTIVE) remain visible.
+      whereClause.status = { not: "TRADED" };
+    }
 
     if (search && search.trim()) {
       const query = search.trim();
@@ -92,7 +124,15 @@ export async function GET(request: Request) {
       };
     });
 
-    return NextResponse.json(parsed);
+    // Update server cache
+    serverListingsCache.set(cacheKey, { data: parsed, timestamp: Date.now() });
+
+    return NextResponse.json(parsed, {
+      headers: {
+        "X-Cache": "MISS",
+        "Cache-Control": "public, s-maxage=10, stale-while-revalidate=30",
+      },
+    });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -212,6 +252,8 @@ export async function POST(request: Request) {
         status: "ACTIVE",
       },
     });
+
+    invalidateListingsCache();
 
     return NextResponse.json(listing, { status: 201 });
   } catch (error: any) {

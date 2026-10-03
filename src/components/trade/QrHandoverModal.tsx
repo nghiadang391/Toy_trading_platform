@@ -44,6 +44,7 @@ export default function QrHandoverModal({
   const [selectedRejectReason, setSelectedRejectReason] = useState<string>("");
   const [customRejectReason, setCustomRejectReason] = useState("");
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [showConfirmReleaseDialog, setShowConfirmReleaseDialog] = useState(false);
 
   // Camera Scanner states
   const [isCameraActive, setIsCameraActive] = useState(false);
@@ -115,7 +116,8 @@ export default function QrHandoverModal({
 
     async function loadL1Token() {
       try {
-        const res = await fetch(`/api/trades/${tradeId}/qr`);
+        const callerParam = user?.joyIdAddress ? `?callerAddress=${encodeURIComponent(user.joyIdAddress)}` : "";
+        const res = await fetch(`/api/trades/${tradeId}/qr${callerParam}`);
         const data = await res.json();
         if (res.ok) {
           setTokenData(data);
@@ -305,8 +307,13 @@ export default function QrHandoverModal({
 
   async function handleVerifyScan(e: React.FormEvent) {
     e.preventDefault();
-    if (!inputCode) return;
+    if (!inputCode || !inputCode.trim()) return;
+    // Guard against accidental release: trigger confirmation dialog
+    setShowConfirmReleaseDialog(true);
+  }
 
+  async function executeSettlement() {
+    setShowConfirmReleaseDialog(false);
     setLoading(true);
     setError(null);
     setMessage(null);
@@ -422,20 +429,41 @@ export default function QrHandoverModal({
           </div>
         )}
 
-        <div className="modal-tabs">
-          <button
-            className={`tab ${activeTab === "SHOW_QR" ? "active" : ""}`}
-            onClick={() => setActiveTab("SHOW_QR")}
-          >
-            {t("sellerShowQr")}
-          </button>
-          <button
-            className={`tab ${activeTab === "SCAN_QR" ? "active" : ""}`}
-            onClick={() => setActiveTab("SCAN_QR")}
-          >
-            {t("buyerScanVerify")}
-          </button>
-        </div>
+        {/* Role-Specific Header or Demo Tabs */}
+        {user && tokenData && (user.id === tokenData.sellerId || user.joyIdAddress === tokenData.sellerAddress) ? (
+          <div className="p-3 bg-amber-500/10 border-b border-amber-500/20 text-xs text-amber-300 flex items-center justify-between">
+            <span className="font-bold flex items-center gap-1.5">
+              <span>🛡️</span> {t("sellerRoleBadge") || "Seller Handover View"}
+            </span>
+            <span className="text-white/60 text-[11px]">
+              {t("sellerMeetupHint") || "Present this QR to the buyer once they inspect the toy."}
+            </span>
+          </div>
+        ) : user && tokenData && (user.id === tokenData.buyerId || user.joyIdAddress === tokenData.buyerAddress) ? (
+          <div className="p-3 bg-[#00ff87]/10 border-b border-[#00ff87]/20 text-xs text-[#00ff87] flex items-center justify-between">
+            <span className="font-bold flex items-center gap-1.5">
+              <span>📱</span> {t("buyerRoleBadge") || "Buyer Verification View"}
+            </span>
+            <span className="text-white/60 text-[11px]">
+              {t("buyerMeetupHint") || "Inspect toy in person before scanning QR or confirming."}
+            </span>
+          </div>
+        ) : (
+          <div className="modal-tabs">
+            <button
+              className={`tab ${activeTab === "SHOW_QR" ? "active" : ""}`}
+              onClick={() => setActiveTab("SHOW_QR")}
+            >
+              {t("sellerShowQr")}
+            </button>
+            <button
+              className={`tab ${activeTab === "SCAN_QR" ? "active" : ""}`}
+              onClick={() => setActiveTab("SCAN_QR")}
+            >
+              {t("buyerScanVerify")}
+            </button>
+          </div>
+        )}
 
         <div className="modal-body">
           {error && !currentDisplayCode ? (
@@ -614,20 +642,39 @@ export default function QrHandoverModal({
                 />
               </div>
 
-              {currentDisplayCode &&
-                !currentDisplayCode.startsWith("Loading") &&
-                !currentDisplayCode.startsWith("Generating") && (
-                  <button
-                    type="button"
-                    className="quick-fill-btn"
-                    onClick={() => setInputCode(currentDisplayCode)}
-                  >
-                    Auto-fill Active Code (Demo Mode)
-                  </button>
-                )}
-
               {error && <div className="alert error">{error}</div>}
               {message && <div className="alert success">{message}</div>}
+
+              {/* Pre-Settlement Confirmation Modal */}
+              {showConfirmReleaseDialog && (
+                <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 space-y-3">
+                  <div className="flex items-center gap-2 text-amber-400 font-bold text-sm">
+                    <span>⚠️</span>
+                    <span>Confirm Escrow Fund Release</span>
+                  </div>
+                  <p className="text-white/80 text-xs leading-relaxed">
+                    Have you physically inspected and received the toy? Releasing escrow transfers funds to the seller immediately and cannot be undone.
+                  </p>
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      className="flex-1 py-2 px-3 rounded-lg bg-[#00ff87] text-black font-bold text-xs hover:opacity-90 transition-opacity"
+                      onClick={executeSettlement}
+                      disabled={loading}
+                    >
+                      {loading ? "Releasing..." : "Yes, Release Escrow"}
+                    </button>
+                    <button
+                      type="button"
+                      className="py-2 px-3 rounded-lg border border-white/20 bg-white/5 text-white/80 text-xs hover:bg-white/10 transition-colors"
+                      onClick={() => setShowConfirmReleaseDialog(false)}
+                      disabled={loading}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <button type="submit" className="submit-btn" disabled={loading || tradeStatus === "CANCELLED"}>
                 {loading ? t("verifying") : t("verifyAndComplete")}

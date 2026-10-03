@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useUser } from "@/lib/UserContext";
 
@@ -38,6 +39,7 @@ export default function BuyToyModal({
   onClose,
   onSuccess,
 }: BuyToyModalProps) {
+  const router = useRouter();
   const { t } = useLanguage();
   const { user, connectWallet } = useUser();
   const [ckbRate, setCkbRate] = useState<number | null>(null);
@@ -45,11 +47,13 @@ export default function BuyToyModal({
   const [selectedMethod, setSelectedMethod] = useState<string>("MEETUP");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [createdTrade, setCreatedTrade] = useState<any>(null);
 
   useEffect(() => {
     if (!isOpen || !listing) return;
     setError(null);
     setSubmitting(false);
+    setCreatedTrade(null);
 
     // Default method to listing's allowed method
     if (listing.tradeMethod === "SHIPPING") {
@@ -123,8 +127,8 @@ export default function BuyToyModal({
 
       const data = await res.json();
       if (res.ok) {
+        setCreatedTrade(data);
         onSuccess(data);
-        onClose();
       } else {
         setError(data.error || "Failed to initiate trade. Please try again.");
       }
@@ -139,16 +143,68 @@ export default function BuyToyModal({
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
-        <div className="modal-header">
-          <div className="header-title">
-            <span className="escrow-pill">🛡️ CKB Escrow Protection</span>
-            <h2>{t("confirmBuy")}</h2>
-          </div>
-          <button className="close-btn" onClick={onClose} disabled={submitting}>✕</button>
-        </div>
+        {createdTrade ? (
+          <>
+            <div className="modal-header">
+              <div className="header-title">
+                <span className="escrow-pill">CKB Escrow Secured</span>
+                <h2>{t("toyReservedTitle") || "Toy Reserved & Escrow Locked"}</h2>
+              </div>
+              <button className="close-btn" onClick={onClose}>✕</button>
+            </div>
 
-        <div className="modal-body">
+            <div className="modal-body p-6 space-y-4">
+              <div className="rounded-xl border border-[#00ff87]/30 bg-[#00ff87]/10 p-4">
+                <p className="font-semibold text-[#00ff87] text-sm">
+                  On-Chain Escrow Protection Active
+                </p>
+                <p className="text-white/80 text-xs mt-1 leading-relaxed">
+                  Your payment of ≈ {ckbAmount?.toLocaleString()} CKB is locked in the on-chain CKB escrow contract. The seller has been notified to hold the toy for you.
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-2">
+                <p className="text-xs font-bold text-white uppercase tracking-wider">Meetup & Inspection Rule:</p>
+                <ol className="text-xs text-white/70 space-y-1.5 list-decimal pl-4">
+                  <li>Use Chat to coordinate your meetup time and location with the seller.</li>
+                  <li>Inspect the toy in person to verify its condition before releasing funds.</li>
+                  <li>When you are satisfied during the meetup, tap <strong>Meetup Handover</strong> on the toy listing or in your Profile to scan the seller's QR code.</li>
+                </ol>
+              </div>
+
+              <div className="flex flex-col gap-2 pt-2">
+                <button
+                  type="button"
+                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#00ff87] to-[#60efff] text-black font-bold text-sm hover:opacity-90 transition-opacity"
+                  onClick={() => {
+                    onClose();
+                    router.push("/profile");
+                  }}
+                >
+                  View in My Profile
+                </button>
+                <button
+                  type="button"
+                  className="w-full py-2.5 px-4 rounded-xl border border-white/15 bg-white/5 text-white font-medium text-xs hover:bg-white/10 transition-colors"
+                  onClick={onClose}
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Header */}
+            <div className="modal-header">
+              <div className="header-title">
+                <span className="escrow-pill">CKB Escrow Protection</span>
+                <h2>{t("confirmBuy")}</h2>
+              </div>
+              <button className="close-btn" onClick={onClose} disabled={submitting}>✕</button>
+            </div>
+
+            <div className="modal-body">
           {/* Toy Overview Card */}
           <div className="toy-summary">
             {listing.imageUrls?.[0] ? (
@@ -247,15 +303,17 @@ export default function BuyToyModal({
           >
             Cancel
           </button>
-          <button
-            type="button"
-            className="confirm-btn"
-            onClick={handleConfirmPurchase}
-            disabled={submitting || loadingRate || !ckbAmount}
-          >
-            {submitting ? t("purchasing") : `🤝 ${t("confirmBuy")}`}
-          </button>
-        </div>
+              <button
+                type="button"
+                className="confirm-btn"
+                onClick={handleConfirmPurchase}
+                disabled={submitting || loadingRate || !ckbAmount}
+              >
+                {submitting ? t("purchasing") : `🤝 ${t("confirmBuy")}`}
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       <style jsx>{`

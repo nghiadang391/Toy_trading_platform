@@ -192,6 +192,15 @@ const translations: Record<Language, Record<string, string>> = {
     tradingCounterparties: "Trade Participants",
     sellerRole: "Seller",
     buyerRole: "Buyer",
+    sellerRoleBadge: "Seller Handover View",
+    sellerMeetupHint: "Present this QR to the buyer once they inspect the toy.",
+    buyerRoleBadge: "Buyer Verification View",
+    buyerMeetupHint: "Inspect toy in person before scanning QR or confirming.",
+    meetupHandoverBtn: "Meetup Handover",
+    meetupHandoverTooltip: "In-person meetup handover",
+    toyReservedTitle: "Toy Reserved & Escrow Locked",
+    profile: "Profile",
+    myProfile: "My Profile",
   },
   vi: {
     // Navbar & Footer
@@ -377,6 +386,15 @@ const translations: Record<Language, Record<string, string>> = {
     tradingCounterparties: "Thành viên giao dịch",
     sellerRole: "Người bán",
     buyerRole: "Người mua",
+    sellerRoleBadge: "Giao diện Bàn giao Người bán",
+    sellerMeetupHint: "Đưa mã QR này cho người mua quét khi gặp mặt trực tiếp.",
+    buyerRoleBadge: "Giao diện Xác nhận Người mua",
+    buyerMeetupHint: "Kiểm tra đồ chơi cẩn thận trước khi quét mã hoặc xác nhận.",
+    meetupHandoverBtn: "Bàn giao Khi Gặp",
+    meetupHandoverTooltip: "Bàn giao khi gặp mặt trực tiếp",
+    toyReservedTitle: "Đã Đặt Cọc & Khóa Ký Quỹ",
+    profile: "Hồ sơ",
+    myProfile: "Hồ sơ của tôi",
   },
 };
 

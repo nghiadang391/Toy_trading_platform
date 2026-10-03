@@ -88,6 +88,18 @@ export async function POST(
       data: { updatedAt: new Date() },
     }).catch((err) => console.warn("Could not update chat room updatedAt:", err));
 
+    // Dispatch notification to recipient
+    const recipientId = room.buyerId === sender.id ? room.sellerId : room.buyerId;
+    await prisma.notification.create({
+      data: {
+        userId: recipientId,
+        type: "MESSAGE_RECEIVED",
+        title: "New Message",
+        message: `${sender.displayName}: ${content.slice(0, 60)}`,
+        link: `/messages?roomId=${roomId}`,
+      },
+    }).catch((err) => console.warn("Could not create chat notification:", err));
+
     return NextResponse.json(message, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

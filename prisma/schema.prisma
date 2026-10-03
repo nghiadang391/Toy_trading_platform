@@ -22,6 +22,7 @@ model User {
   chatRoomsAsBuyer  ChatRoom[]    @relation("buyerRooms")
   chatRoomsAsSeller ChatRoom[]    @relation("sellerRooms")
   sentMessages      ChatMessage[]
+  notifications     Notification[]
 }
 
 model Listing {
@@ -134,6 +135,20 @@ model ChatMessage {
   content   String
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // 'TRADE_BOOKED', 'MESSAGE_RECEIVED', 'TRADE_COMPLETED', 'TRADE_CANCELLED'
+  title     String
+  message   String
+  link      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
 }
 
 enum Region {

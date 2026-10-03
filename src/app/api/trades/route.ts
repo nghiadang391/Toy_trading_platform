@@ -77,6 +77,10 @@ export async function POST(request: Request) {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7); // Escrow locks for 7 days
 
+    const buyer = await prisma.user.findFirst({
+      where: { OR: [{ id: buyerId }, { joyIdAddress: buyerId }] },
+    });
+
     // Create the trade and reserve the listing status inside a transaction
     const result = await prisma.$transaction(async (tx) => {
       const updatedListing = await tx.listing.update({
@@ -87,7 +91,7 @@ export async function POST(request: Request) {
       const trade = await tx.trade.create({
         data: {
           listingId,
-          buyerId,
+          buyerId: buyer?.id || buyerId,
           sellerId: listing.sellerId,
           priceFiat,
           priceCkb: BigInt(priceCkb),
@@ -97,6 +101,17 @@ export async function POST(request: Request) {
           escrowCellOutpoint: escrowCellOutpoint || null,
           status: "ESCROW_FUNDED",
           expiresAt,
+        },
+      });
+
+      // Notify seller that toy has been booked and escrow locked
+      await tx.notification.create({
+        data: {
+          userId: listing.sellerId,
+          type: "TRADE_BOOKED",
+          title: "Toy Booked & Escrow Locked",
+          message: `${buyer?.displayName || "A buyer"} reserved "${listing.title}". Escrow funds are secured on-chain.`,
+          link: `/profile`,
         },
       });
 
