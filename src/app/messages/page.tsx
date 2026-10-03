@@ -32,15 +32,19 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Fallback demo user ID if not logged in yet
-  const fallbackUserId = "cmslwc9bl0001oerq542iln7o";
-  const currentUserId = user?.id || fallbackUserId;
+  const currentUserId = user?.id || user?.joyIdAddress || "";
 
   // Fetch active chat rooms
   useEffect(() => {
+    if (!currentUserId) {
+      setRooms([]);
+      setLoading(false);
+      return;
+    }
+
     async function fetchRooms() {
       try {
-        const res = await fetch(`/api/chat/rooms?userId=${currentUserId}`);
+        const res = await fetch(`/api/chat/rooms?userId=${encodeURIComponent(currentUserId)}`);
         const data = await res.json();
         if (Array.isArray(data)) {
           setRooms(data);
@@ -93,19 +97,29 @@ export default function MessagesPage() {
     const roomId = activeRoom?.id;
     if (!content.trim() || !roomId) return;
 
+    let sender = currentUserId;
+    if (!sender) {
+      const activeUser = await connectWallet();
+      if (!activeUser) return;
+      sender = activeUser.id || activeUser.joyIdAddress;
+    }
+
     try {
       const res = await fetch(`/api/chat/rooms/${roomId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          senderId: currentUserId,
+          senderId: sender,
           content,
         }),
       });
 
       const msg = await res.json();
       if (res.ok) {
-        setMessages((prev) => [...prev, msg]);
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === msg.id)) return prev;
+          return [...prev, msg];
+        });
       }
     } catch (err) {
       console.error("Failed to send message:", err);
@@ -114,6 +128,7 @@ export default function MessagesPage() {
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
+    if (!newMsg.trim()) return;
     const content = newMsg;
     setNewMsg(""); // Clear immediately for UX
     await sendMsg(content);

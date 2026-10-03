@@ -9,13 +9,22 @@ export async function GET(request: Request) {
     const region = searchParams.get("region") as Region | null;
     const category = searchParams.get("category") as ToyCategory | null;
     const condition = searchParams.get("condition") as ToyCondition | null;
-    const status = searchParams.get("status") || "ACTIVE";
+    const status = searchParams.get("status");
+    const search = searchParams.get("search") || searchParams.get("q");
 
     const whereClause: any = {};
     if (region) whereClause.shippingRegion = region;
     if (category) whereClause.category = category;
     if (condition) whereClause.condition = condition;
     if (status) whereClause.status = status;
+
+    if (search && search.trim()) {
+      const query = search.trim();
+      whereClause.OR = [
+        { title: { contains: query } },
+        { description: { contains: query } },
+      ];
+    }
 
     const listings = await prisma.listing.findMany({
       where: whereClause,

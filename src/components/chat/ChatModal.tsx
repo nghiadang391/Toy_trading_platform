@@ -35,72 +35,57 @@ export default function ChatModal({
   const [room, setRoom] = useState<any>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMsg, setNewMsg] = useState("");
+  const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { t } = useLanguage();
 
-  const [buyerAddress, setBuyerAddress] = useState<string | null>(null);
-
-  // Fetch buyer JoyID address for signing requests
-  useEffect(() => {
-    if (!isOpen || !buyerId) return;
-    async function fetchBuyer() {
-      try {
-        const res = await fetch(`/api/users/${buyerId}`);
-        const data = await res.json();
-        if (res.ok && data.joyIdAddress) {
-          setBuyerAddress(data.joyIdAddress);
-        }
-      } catch (err) {
-        console.error("Failed to fetch buyer details:", err);
-      }
-    }
-    fetchBuyer();
-  }, [isOpen, buyerId]);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Initialize or fetch the ChatRoom
-  useEffect(() => {
-    if (!isOpen || !buyerAddress) return;
+  const initChatRoom = async () => {
+    if (!isOpen || !buyerId || !sellerId) return;
+    setErrorMsg(null);
     setRoom(null);
     setMessages([]);
 
-    async function initChatRoom() {
-      try {
-        const message = `create-room:${buyerId}:${sellerId}`;
-        const signature = `mock-sig-${buyerAddress}`;
-
-        const res = await fetch("/api/chat/rooms", {
-          method: "POST",
-          headers: { 
-            "Content-Type": "application/json",
-            "x-signature": signature,
-          },
-          body: JSON.stringify({
-            listingId,
-            buyerId,
-            sellerId,
-          }),
-        });
-        const data = await res.json();
-        if (res.ok) {
-          setRoom(data);
-        }
-      } catch (err) {
-        console.error("Failed to initialize chat room:", err);
+    try {
+      const res = await fetch("/api/chat/rooms", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          listingId,
+          buyerId,
+          sellerId,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setRoom(data);
+      } else {
+        setErrorMsg(data.error || "Failed to initialize chat room");
       }
+    } catch (err: any) {
+      console.error("Failed to initialize chat room:", err);
+      setErrorMsg("Network error connecting to chat room. Please retry.");
     }
+  };
 
+  useEffect(() => {
     initChatRoom();
-  }, [isOpen, listingId, buyerId, sellerId, buyerAddress]);
+  }, [isOpen, listingId, buyerId, sellerId]);
 
   // Poll for new messages every 3 seconds when room is ready
   useEffect(() => {
     if (!isOpen || !room?.id) return;
+    let isMounted = true;
 
     async function fetchMessages() {
       try {
         const res = await fetch(`/api/chat/rooms/${room.id}/messages`);
         const data = await res.json();
-        if (Array.isArray(data)) {
+        if (isMounted && Array.isArray(data)) {
           setMessages(data);
         }
       } catch (err) {
@@ -111,7 +96,10 @@ export default function ChatModal({
     fetchMessages(); // Initial fetch
 
     const interval = setInterval(fetchMessages, 3000);
-    return () => clearInterval(interval);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, [isOpen, room?.id]);
 
   // Auto-scroll to the bottom of the chat stream
@@ -120,17 +108,14 @@ export default function ChatModal({
   }, [messages]);
 
   async function sendMsg(content: string) {
-    if (!content.trim() || !room?.id || !buyerAddress) return;
+    if (!content.trim() || !room?.id || sending) return;
 
+    setSending(true);
     try {
-      const messageChallenge = `send-message:${room.id}:${content}`;
-      const signature = `mock-sig-${buyerAddress}`;
-
       const res = await fetch(`/api/chat/rooms/${room.id}/messages`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "x-signature": signature,
         },
         body: JSON.stringify({
           senderId: buyerId,
@@ -140,15 +125,23 @@ export default function ChatModal({
 
       const message = await res.json();
       if (res.ok) {
-        setMessages((prev) => [...prev, message]);
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === message.id)) return prev;
+          return [...prev, message];
+        });
+      } else {
+        console.error("Failed to send message:", message.error);
       }
     } catch (err) {
       console.error("Failed to send message:", err);
+    } finally {
+      setSending(false);
     }
   }
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
+    if (sending || !newMsg.trim()) return;
     const content = newMsg;
     setNewMsg(""); // Clear input immediately for better UX
     await sendMsg(content);
@@ -176,7 +169,17 @@ export default function ChatModal({
 
         {/* Messages Body */}
         <div className="chat-body">
-          {!room ? (
+          {errorMsg ? (
+            <div className="chat-empty flex flex-col items-center justify-center p-6 text-center">
+              <p className="text-red-400 mb-3">{errorMsg}</p>
+              <button 
+                onClick={initChatRoom} 
+                className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-semibold text-white transition-colors"
+              >
+                🔄 Retry Connection
+              </button>
+            </div>
+          ) : !room ? (
             <div className="chat-loader">{t("connectingPrivateChannel")}</div>
           ) : messages.length === 0 ? (
             <div className="chat-empty">
@@ -209,7 +212,12 @@ export default function ChatModal({
         {room && (
           <div className="suggestions-bar">
             {suggestions.map((text, idx) => (
-              <button key={idx} className="suggestion-pill" onClick={() => sendMsg(text)}>
+              <button
+                key={idx}
+                className="suggestion-pill"
+                disabled={sending}
+                onClick={() => sendMsg(text)}
+              >
                 {text}
               </button>
             ))}
@@ -223,10 +231,10 @@ export default function ChatModal({
             value={newMsg}
             onChange={(e) => setNewMsg(e.target.value)}
             placeholder={t("typeMessageHere")}
-            disabled={!room}
+            disabled={!room || sending}
           />
-          <button type="submit" className="send-btn" disabled={!room || !newMsg.trim()}>
-            {t("send")}
+          <button type="submit" className="send-btn" disabled={!room || !newMsg.trim() || sending}>
+            {sending ? "..." : t("send")}
           </button>
         </form>
       </div>

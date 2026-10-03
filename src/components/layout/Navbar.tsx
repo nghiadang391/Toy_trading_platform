@@ -16,14 +16,23 @@ export default function Navbar() {
     <>
       <nav className="sticky top-0 z-50 w-full border-b border-white/10 bg-black/85 backdrop-blur-md font-sans">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 py-4 flex items-center justify-between">
-          {/* Brand Logo */}
-          <Link 
-            href="/" 
-            className="text-xl font-extrabold text-white tracking-tight flex items-center gap-1"
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            Toy<span className="text-[#00ff87]">Trade</span>
-          </Link>
+          {/* Brand Logo & Network Badge */}
+          <div className="flex items-center gap-2">
+            <Link 
+              href="/" 
+              className="text-xl font-extrabold text-white tracking-tight flex items-center gap-1"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Toy<span className="text-[#00ff87]">Trade</span>
+            </Link>
+            <span 
+              className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-400 select-none"
+              title="Connected to Nervos CKB Testnet (Aggron4)"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+              Testnet
+            </span>
+          </div>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-6 lg:gap-8">

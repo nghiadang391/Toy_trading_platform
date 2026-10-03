@@ -6,6 +6,7 @@ import PriceDisplay from "@/components/toy/PriceDisplay";
 import ToyPassportModal from "@/components/passport/ToyPassportModal";
 import QrHandoverModal from "@/components/trade/QrHandoverModal";
 import ChatModal from "@/components/chat/ChatModal";
+import BuyToyModal from "@/components/trade/BuyToyModal";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useUser } from "@/lib/UserContext";
 
@@ -35,7 +36,12 @@ interface Listing {
     completedTrades?: number;
   };
   sporeDobId?: string | null;
-  trades?: Array<{ id: string }>;
+  trades?: Array<{
+    id: string;
+    status: string;
+    buyerId: string;
+    sellerId: string;
+  }>;
 }
 
 export default function ListingsPage() {
@@ -44,37 +50,57 @@ export default function ListingsPage() {
   const { t } = useLanguage();
   const { user, connectWallet } = useUser();
 
+  // Search & Filter State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("ALL");
+  const [selectedRegion, setSelectedRegion] = useState("ALL");
+
   // Modal State
   const [selectedPassportId, setSelectedPassportId] = useState<string | null>(null);
   const [selectedTradeId, setSelectedTradeId] = useState<string | null>(null);
+  const [selectedBuyListing, setSelectedBuyListing] = useState<Listing | null>(null);
 
   // Chat Modal State
   const [selectedChatListing, setSelectedChatListing] = useState<Listing | null>(null);
+  const [chatBuyerId, setChatBuyerId] = useState<string>("");
 
-  // Fallback Buyer ID for guest preview mode if not connected
-  const fallbackBuyerId = "cmslwc9bl0001oerq542iln7o";
-  const activeBuyerId = user?.id || fallbackBuyerId;
+  const activeBuyerId = chatBuyerId || user?.id || user?.joyIdAddress || "";
 
-  useEffect(() => {
-    async function fetchListings() {
-      try {
-        const res = await fetch("/api/listings");
-        const data = await res.json();
-        setListings(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error("Failed to load listings:", err);
-      } finally {
-        setLoading(false);
-      }
+  async function fetchListings() {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams();
+      if (searchQuery.trim()) params.append("search", searchQuery.trim());
+      if (selectedCategory !== "ALL") params.append("category", selectedCategory);
+      if (selectedRegion !== "ALL") params.append("region", selectedRegion);
+
+      const url = `/api/listings${params.toString() ? `?${params.toString()}` : ""}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      setListings(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Failed to load listings:", err);
+    } finally {
+      setLoading(false);
     }
-    fetchListings();
-  }, []);
+  }
+
+  // Debounced search & filter trigger
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      fetchListings();
+    }, 250);
+
+    return () => clearTimeout(handler);
+  }, [searchQuery, selectedCategory, selectedRegion]);
 
   const handleOpenChat = async (item: Listing) => {
-    if (!user) {
-      const connectedUser = await connectWallet();
-      if (!connectedUser) return;
+    let activeUser = user;
+    if (!activeUser) {
+      activeUser = await connectWallet();
+      if (!activeUser) return;
     }
+    setChatBuyerId(activeUser.id || activeUser.joyIdAddress);
     setSelectedChatListing(item);
   };
 
@@ -87,19 +113,103 @@ export default function ListingsPage() {
         </Link>
       </div>
 
+      {/* Search & Filter Bar */}
+      <div className="search-filter-bar">
+        <div className="search-input-wrapper">
+          <span className="search-icon">🔍</span>
+          <input
+            type="text"
+            className="search-input"
+            placeholder={t("searchPlaceholder")}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <button
+              className="clear-search-btn"
+              onClick={() => setSearchQuery("")}
+              title="Clear search"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        <div className="filter-group">
+          <select
+            className="filter-select"
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+          >
+            <option value="ALL">{t("allCategories")}</option>
+            <option value="BUILDING_SETS">{t("cat_BUILDING_SETS")}</option>
+            <option value="ACTION_FIGURES">{t("cat_ACTION_FIGURES")}</option>
+            <option value="DOLLS">{t("cat_DOLLS")}</option>
+            <option value="PUZZLES">{t("cat_PUZZLES")}</option>
+            <option value="BOARD_GAMES">{t("cat_BOARD_GAMES")}</option>
+            <option value="EDUCATIONAL">{t("cat_EDUCATIONAL")}</option>
+            <option value="OUTDOOR">{t("cat_OUTDOOR")}</option>
+            <option value="VEHICLES">{t("cat_VEHICLES")}</option>
+            <option value="OTHER">{t("cat_OTHER")}</option>
+          </select>
+
+          <select
+            className="filter-select"
+            value={selectedRegion}
+            onChange={(e) => setSelectedRegion(e.target.value)}
+          >
+            <option value="ALL">{t("allRegions")}</option>
+            <option value="UK">United Kingdom</option>
+            <option value="VIETNAM">Vietnam</option>
+          </select>
+
+          {(searchQuery || selectedCategory !== "ALL" || selectedRegion !== "ALL") && (
+            <button
+              className="reset-filters-btn"
+              onClick={() => {
+                setSearchQuery("");
+                setSelectedCategory("ALL");
+                setSelectedRegion("ALL");
+              }}
+            >
+              {t("clearFilters")}
+            </button>
+          )}
+        </div>
+      </div>
+
       {loading ? (
         <div className="loading">{t("loadingListings")}</div>
       ) : listings.length === 0 ? (
         <div className="empty-state">
-          <p>{t("noToysYet")}</p>
-          <Link href="/listings/create" className="sell-btn inline">
-            {t("listAToyNow")}
-          </Link>
+          <p>{searchQuery || selectedCategory !== "ALL" || selectedRegion !== "ALL" ? t("noMatchingToys") : t("noToysYet")}</p>
+          {searchQuery || selectedCategory !== "ALL" || selectedRegion !== "ALL" ? (
+            <button
+              className="sell-btn inline"
+              onClick={() => {
+                setSearchQuery("");
+                setSelectedCategory("ALL");
+                setSelectedRegion("ALL");
+              }}
+            >
+              {t("clearFilters")}
+            </button>
+          ) : (
+            <Link href="/listings/create" className="sell-btn inline">
+              {t("listAToyNow")}
+            </Link>
+          )}
         </div>
       ) : (
         <div className="listings-grid">
           {listings.map((item) => {
             const isOwnListing = Boolean(user && item.sellerId === user.id);
+            const isUserInTrade = Boolean(
+              user && item.trades?.some((tr) => (tr.buyerId === user.id || tr.sellerId === user.id) && tr.status !== "CANCELLED" && tr.status !== "REJECTED_REFUNDED")
+            );
+            const activeTrade = item.trades?.find(
+              (tr) => (tr.buyerId === user?.id || tr.sellerId === user?.id) && tr.status !== "CANCELLED" && tr.status !== "REJECTED_REFUNDED"
+            );
 
             return (
               <div key={item.id} className="card">
@@ -170,30 +280,44 @@ export default function ListingsPage() {
                     <span className="badge-capacity">244 CKB</span>
                   </div>
 
-                  {/* Interactive Action Buttons for Toy Passport, QR Handover & Chat */}
+                  {/* Prominent Buy & Actions Bar */}
                   <div className="card-actions">
                     <button
-                      className="action-btn passport-btn"
-                      onClick={() => setSelectedPassportId(item.id)}
+                      className="action-btn buy-btn"
+                      disabled={isOwnListing || item.status !== "ACTIVE"}
+                      onClick={() => setSelectedBuyListing(item)}
+                      title={isOwnListing ? t("yourToy") : t("buyBtn")}
                     >
-                      📜 {t("passportBtn")}
+                      💳 {isOwnListing ? t("yourToy") : item.status === "ACTIVE" ? t("buyBtn") : item.status}
                     </button>
 
-                    <button
-                      className="action-btn qr-btn"
-                      onClick={() => setSelectedTradeId(item.trades?.[0]?.id || item.id)}
-                    >
-                      📱 {t("handoverBtn")}
-                    </button>
+                    <div className="secondary-actions">
+                      <button
+                        className="action-btn chat-btn"
+                        onClick={() => handleOpenChat(item)}
+                        disabled={isOwnListing}
+                        title={isOwnListing ? t("yourToy") : t("chatBtn")}
+                      >
+                        💬 {t("chatBtn")}
+                      </button>
 
-                    <button
-                      className="action-btn chat-btn"
-                      onClick={() => handleOpenChat(item)}
-                      disabled={isOwnListing}
-                      title={isOwnListing ? "This is your own listing" : "Chat with seller"}
-                    >
-                      💬 {isOwnListing ? "Your Toy" : t("chatBtn")}
-                    </button>
+                      <button
+                        className="action-btn passport-btn"
+                        onClick={() => setSelectedPassportId(item.id)}
+                      >
+                        📜 {t("passportBtn")}
+                      </button>
+
+                      {isUserInTrade && (
+                        <button
+                          className="action-btn qr-btn"
+                          onClick={() => setSelectedTradeId(activeTrade?.id || "")}
+                          title={t("handoverBtn")}
+                        >
+                          📱 {t("handoverBtn")}
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="footer-row flex items-center justify-between pt-2 border-t border-white/5 text-xs">
@@ -230,6 +354,20 @@ export default function ListingsPage() {
         </div>
       )}
 
+      {/* Buy / Escrow Modal */}
+      <BuyToyModal
+        listing={selectedBuyListing}
+        isOpen={!!selectedBuyListing}
+        onClose={() => setSelectedBuyListing(null)}
+        onSuccess={(trade) => {
+          setSelectedBuyListing(null);
+          fetchListings();
+          if (trade?.id) {
+            setSelectedTradeId(trade.id);
+          }
+        }}
+      />
+
       {/* Toy Passport Spore DOB Modal */}
       <ToyPassportModal
         listingId={selectedPassportId || ""}
@@ -253,7 +391,10 @@ export default function ListingsPage() {
           sellerName={selectedChatListing.seller.displayName}
           toyTitle={selectedChatListing.title}
           isOpen={!!selectedChatListing}
-          onClose={() => setSelectedChatListing(null)}
+          onClose={() => {
+            setSelectedChatListing(null);
+            setChatBuyerId("");
+          }}
         />
       )}
 
@@ -434,20 +575,143 @@ export default function ListingsPage() {
           font-weight: 700;
           letter-spacing: 0.03em;
         }
+        .search-filter-bar {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 28px;
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          padding: 14px 18px;
+          border-radius: 12px;
+        }
+        .search-input-wrapper {
+          position: relative;
+          flex: 1;
+          min-width: 260px;
+          display: flex;
+          align-items: center;
+        }
+        .search-icon {
+          position: absolute;
+          left: 12px;
+          font-size: 0.95rem;
+          opacity: 0.6;
+          pointer-events: none;
+        }
+        .search-input {
+          width: 100%;
+          padding: 10px 36px 10px 38px;
+          background: rgba(0, 0, 0, 0.35);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          border-radius: 8px;
+          color: #ffffff;
+          font-size: 0.9rem;
+          outline: none;
+          transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .search-input:focus {
+          border-color: #00ff87;
+          box-shadow: 0 0 0 2px rgba(0, 255, 135, 0.2);
+        }
+        .search-input::placeholder {
+          color: rgba(255, 255, 255, 0.4);
+        }
+        .clear-search-btn {
+          position: absolute;
+          right: 10px;
+          background: transparent;
+          border: none;
+          color: rgba(255, 255, 255, 0.5);
+          font-size: 0.85rem;
+          cursor: pointer;
+          padding: 4px;
+        }
+        .clear-search-btn:hover {
+          color: #ffffff;
+        }
+        .filter-group {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          align-items: center;
+        }
+        .filter-select {
+          padding: 10px 14px;
+          background: rgba(0, 0, 0, 0.35);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          border-radius: 8px;
+          color: #ffffff;
+          font-size: 0.85rem;
+          outline: none;
+          cursor: pointer;
+          transition: border-color 0.2s;
+        }
+        .filter-select:focus {
+          border-color: #00ff87;
+        }
+        .filter-select option {
+          background: #111827;
+          color: #ffffff;
+        }
+        .reset-filters-btn {
+          padding: 9px 14px;
+          background: rgba(255, 71, 87, 0.1);
+          border: 1px solid rgba(255, 71, 87, 0.25);
+          color: #ff6b81;
+          border-radius: 8px;
+          font-size: 0.85rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .reset-filters-btn:hover {
+          background: rgba(255, 71, 87, 0.2);
+        }
         .card-actions {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
+          display: flex;
+          flex-direction: column;
           gap: 8px;
-          margin-top: 8px;
+          margin-top: 10px;
+        }
+        .secondary-actions {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(75px, 1fr));
+          gap: 6px;
         }
         .action-btn {
-          padding: 8px 0;
-          border-radius: 6px;
-          font-size: 0.8rem;
+          padding: 8px 10px;
+          border-radius: 8px;
+          font-size: 0.82rem;
           font-weight: 600;
           border: none;
           cursor: pointer;
-          transition: background 0.2s, opacity 0.2s;
+          transition: all 0.2s ease;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+        }
+        .buy-btn {
+          width: 100%;
+          padding: 10px 16px;
+          background: linear-gradient(135deg, #00ff87 0%, #60efff 100%);
+          color: #050b14;
+          font-weight: 700;
+          font-size: 0.9rem;
+          box-shadow: 0 2px 10px rgba(0, 255, 135, 0.2);
+        }
+        .buy-btn:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 15px rgba(0, 255, 135, 0.35);
+        }
+        .buy-btn:disabled {
+          background: rgba(255, 255, 255, 0.08);
+          color: rgba(255, 255, 255, 0.4);
+          cursor: not-allowed;
+          box-shadow: none;
         }
         .passport-btn {
           background: rgba(255, 255, 255, 0.08);
