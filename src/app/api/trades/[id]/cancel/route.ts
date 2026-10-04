@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { invalidateListingsCache } from "@/app/api/listings/route";
 
 export async function GET(
   request: Request,
@@ -169,6 +170,9 @@ export async function POST(
 
         return cancelledTrade;
       });
+
+      // Invalidate listings cache so the restored active listing immediately appears on marketplace
+      invalidateListingsCache();
 
       return NextResponse.json({
         success: true,

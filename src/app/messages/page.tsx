@@ -61,8 +61,24 @@ export default function MessagesPage() {
     }
 
     fetchRooms();
-    const interval = setInterval(fetchRooms, 6000); // refresh list every 6s
-    return () => clearInterval(interval);
+    const interval = setInterval(fetchRooms, 4000); // refresh list every 4s
+
+    const handleFocusOrNotif = () => {
+      if (document.visibilityState === "visible") {
+        fetchRooms();
+      }
+    };
+
+    window.addEventListener("focus", handleFocusOrNotif);
+    document.addEventListener("visibilitychange", handleFocusOrNotif);
+    window.addEventListener("toytrade:notification", handleFocusOrNotif);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", handleFocusOrNotif);
+      document.removeEventListener("visibilitychange", handleFocusOrNotif);
+      window.removeEventListener("toytrade:notification", handleFocusOrNotif);
+    };
   }, [currentUserId, activeRoom]);
 
   // Fetch messages for active chat room
@@ -84,8 +100,24 @@ export default function MessagesPage() {
     }
 
     fetchMessages(); // Initial fetch
-    const interval = setInterval(fetchMessages, 3000); // poll messages every 3s
-    return () => clearInterval(interval);
+    const interval = setInterval(fetchMessages, 2000); // poll messages every 2s
+
+    const handleFocusOrNotif = () => {
+      if (document.visibilityState === "visible") {
+        fetchMessages();
+      }
+    };
+
+    window.addEventListener("focus", handleFocusOrNotif);
+    document.addEventListener("visibilitychange", handleFocusOrNotif);
+    window.addEventListener("toytrade:notification", handleFocusOrNotif);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", handleFocusOrNotif);
+      document.removeEventListener("visibilitychange", handleFocusOrNotif);
+      window.removeEventListener("toytrade:notification", handleFocusOrNotif);
+    };
   }, [activeRoom?.id]);
 
   // Scroll to bottom

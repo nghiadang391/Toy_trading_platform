@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
+import { invalidateListingsCache } from "@/app/api/listings/route";
 
 // GET /api/trades/[id]/qr - Generate 1-time QR handover token for buyer
 export async function GET(
@@ -20,7 +21,7 @@ export async function GET(
       trade = await prisma.trade.findFirst({
         where: {
           listingId: paramId,
-          status: { in: ["PENDING", "ESCROW_FUNDED", "CANCEL_REQUESTED"] },
+          status: { in: ["PENDING", "ESCROW_FUNDED", "CANCEL_REQUESTED", "COMPLETED", "CANCELLED"] },
         },
         include: { listing: true, buyer: true, seller: true },
         orderBy: { createdAt: "desc" },
@@ -156,6 +157,9 @@ export async function POST(
       where: { id: trade.listingId },
       data: { status: "TRADED" },
     });
+
+    // Invalidate listings cache so marketplace immediately removes/updates traded item
+    invalidateListingsCache();
 
     // Create a PassportLog entry for the Toy Passport (Spore DOB) timeline
     await prisma.passportLog.create({

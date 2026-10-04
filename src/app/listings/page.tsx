@@ -74,9 +74,11 @@ export default function ListingsPage() {
 
   const activeBuyerId = chatBuyerId || user?.id || user?.joyIdAddress || "";
 
-  async function fetchListings() {
+  async function fetchListings(isSilent = false) {
     try {
-      setLoading(true);
+      if (!isSilent) {
+        setLoading(true);
+      }
       const params = new URLSearchParams();
       if (searchQuery.trim()) params.append("search", searchQuery.trim());
       if (selectedCategory !== "ALL") params.append("category", selectedCategory);
@@ -91,7 +93,9 @@ export default function ListingsPage() {
     } catch (err) {
       console.error("Failed to load listings:", err);
     } finally {
-      setLoading(false);
+      if (!isSilent) {
+        setLoading(false);
+      }
     }
   }
 
@@ -108,6 +112,37 @@ export default function ListingsPage() {
     }, 250);
 
     return () => clearTimeout(handler);
+  }, [searchQuery, selectedCategory, selectedRegion]);
+
+  // Real-time background sync: periodic polling (10s), window focus/visibility, and live custom events
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchListings(true);
+    }, 10000);
+
+    const handleFocusOrVisible = () => {
+      if (document.visibilityState === "visible") {
+        fetchListings(true);
+      }
+    };
+
+    const handleLiveUpdates = () => {
+      clientListingsCache = null;
+      fetchListings(true);
+    };
+
+    window.addEventListener("focus", handleFocusOrVisible);
+    document.addEventListener("visibilitychange", handleFocusOrVisible);
+    window.addEventListener("toytrade:tradeUpdated", handleLiveUpdates);
+    window.addEventListener("toytrade:listingUpdated", handleLiveUpdates);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", handleFocusOrVisible);
+      document.removeEventListener("visibilitychange", handleFocusOrVisible);
+      window.removeEventListener("toytrade:tradeUpdated", handleLiveUpdates);
+      window.removeEventListener("toytrade:listingUpdated", handleLiveUpdates);
+    };
   }, [searchQuery, selectedCategory, selectedRegion]);
 
   const handleOpenChat = async (item: Listing) => {

@@ -129,6 +129,12 @@ export default function BuyToyModal({
       if (res.ok) {
         setCreatedTrade(data);
         onSuccess(data);
+        window.dispatchEvent(
+          new CustomEvent("toytrade:tradeUpdated", {
+            detail: { tradeId: data.id, listingId: listing.id, status: "ESCROW_FUNDED" },
+          })
+        );
+        window.dispatchEvent(new CustomEvent("toytrade:listingUpdated"));
       } else {
         setError(data.error || "Failed to initiate trade. Please try again.");
       }

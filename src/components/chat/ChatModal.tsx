@@ -95,10 +95,24 @@ export default function ChatModal({
 
     fetchMessages(); // Initial fetch
 
-    const interval = setInterval(fetchMessages, 3000);
+    const interval = setInterval(fetchMessages, 2000);
+
+    const handleNotifOrFocus = () => {
+      if (document.visibilityState === "visible") {
+        fetchMessages();
+      }
+    };
+
+    window.addEventListener("focus", handleNotifOrFocus);
+    document.addEventListener("visibilitychange", handleNotifOrFocus);
+    window.addEventListener("toytrade:notification", handleNotifOrFocus);
+
     return () => {
       isMounted = false;
       clearInterval(interval);
+      window.removeEventListener("focus", handleNotifOrFocus);
+      document.removeEventListener("visibilitychange", handleNotifOrFocus);
+      window.removeEventListener("toytrade:notification", handleNotifOrFocus);
     };
   }, [isOpen, room?.id]);
 
