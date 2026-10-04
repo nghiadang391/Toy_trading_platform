@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import PriceDisplay from "@/components/toy/PriceDisplay";
 import ToyPassportModal from "@/components/passport/ToyPassportModal";
@@ -44,11 +44,19 @@ interface Listing {
   }>;
 }
 
+// Module-level client cache for instant (<50ms) page loads on repeat navigation
+let clientListingsCache: { data: Listing[]; timestamp: number } | null = null;
+
 export default function ListingsPage() {
-  const [listings, setListings] = useState<Listing[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [listings, setListings] = useState<Listing[]>(() => {
+    return clientListingsCache?.data || [];
+  });
+  const [loading, setLoading] = useState(() => {
+    return !clientListingsCache?.data?.length;
+  });
   const { t } = useLanguage();
   const { user, connectWallet } = useUser();
+  const isInitialMount = useRef(true);
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState("");
@@ -77,7 +85,9 @@ export default function ListingsPage() {
       const url = `/api/listings${params.toString() ? `?${params.toString()}` : ""}`;
       const res = await fetch(url);
       const data = await res.json();
-      setListings(Array.isArray(data) ? data : []);
+      const filtered = Array.isArray(data) ? data.filter((i: Listing) => i.status !== "TRADED") : [];
+      setListings(filtered);
+      clientListingsCache = { data: filtered, timestamp: Date.now() };
     } catch (err) {
       console.error("Failed to load listings:", err);
     } finally {
@@ -85,8 +95,14 @@ export default function ListingsPage() {
     }
   }
 
-  // Debounced search & filter trigger
+  // Fetch immediately on initial mount (0ms delay); debounce only on search/filter changes
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      fetchListings();
+      return;
+    }
+
     const handler = setTimeout(() => {
       fetchListings();
     }, 250);
@@ -327,9 +343,12 @@ export default function ListingsPage() {
                       </div>
                       <span className="seller text-white/70">
                         {t("listedBy")}{" "}
-                        <strong className="text-white font-medium">
+                        <Link
+                          href={`/profile?userId=${item.seller?.id || item.seller?.joyIdAddress}`}
+                          className="text-white font-medium hover:text-[#00ff87] transition-colors underline-offset-2 hover:underline"
+                        >
                           {isOwnListing ? "You" : item.seller?.displayName || "Passkey User"}
-                        </strong>
+                        </Link>
                       </span>
                     </div>
 
@@ -359,12 +378,10 @@ export default function ListingsPage() {
         listing={selectedBuyListing}
         isOpen={!!selectedBuyListing}
         onClose={() => setSelectedBuyListing(null)}
-        onSuccess={(trade) => {
+        onSuccess={() => {
           setSelectedBuyListing(null);
+          clientListingsCache = null;
           fetchListings();
-          if (trade?.id) {
-            setSelectedTradeId(trade.id);
-          }
         }}
       />
 

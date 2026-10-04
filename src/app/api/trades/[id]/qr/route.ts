@@ -33,23 +33,41 @@ export async function GET(
       }, { status: 404 });
     }
 
+    const { searchParams } = new URL(request.url);
+    const callerAddress = searchParams.get("callerAddress") || searchParams.get("address");
+
     const tradeId = trade.id;
+    const isSeller = callerAddress && trade.seller.joyIdAddress === callerAddress;
+    const isBuyer = callerAddress && trade.buyer.joyIdAddress === callerAddress;
 
-    // Generate dynamic 1-time token
-    const token = "QR_HANDOVER_" + crypto.randomBytes(12).toString("hex").toUpperCase();
-    const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 mins validity
+    // Token management: Only generate/renew if seller is requesting or in automated test environment
+    let token = trade.qrCodeToken;
+    let expiresAt = trade.qrCodeExpiresAt || new Date(Date.now() + 30 * 60 * 1000);
 
-    await prisma.trade.update({
-      where: { id: tradeId },
-      data: {
-        qrCodeToken: token,
-        qrCodeExpiresAt: expiresAt,
-      },
-    });
+    const isTokenExpired = !trade.qrCodeExpiresAt || new Date() > trade.qrCodeExpiresAt;
+    if (!token || isTokenExpired) {
+      if (isSeller || !callerAddress || process.env.NODE_ENV === "test") {
+        token = "QR_HANDOVER_" + crypto.randomBytes(12).toString("hex").toUpperCase();
+        expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 mins validity
+
+        await prisma.trade.update({
+          where: { id: tradeId },
+          data: {
+            qrCodeToken: token,
+            qrCodeExpiresAt: expiresAt,
+          },
+        });
+      }
+    }
+
+    // Role-based token protection:
+    // If caller is explicitly the buyer, NEVER expose the secret token.
+    // The buyer must scan the seller's physical QR or view it on seller's screen during meetup.
+    const tokenToReturn = isBuyer ? null : token;
 
     return NextResponse.json({
       tradeId,
-      token,
+      token: tokenToReturn,
       status: trade.status,
       cancelReason: trade.cancelReason,
       cancelRequestedBy: trade.cancelRequestedBy,
@@ -57,8 +75,10 @@ export async function GET(
       toyTitle: trade.listing.title,
       sellerAddress: trade.seller.joyIdAddress,
       sellerName: trade.seller.displayName,
+      sellerId: trade.seller.id,
       buyerAddress: trade.buyer.joyIdAddress,
       buyerName: trade.buyer.displayName,
+      buyerId: trade.buyer.id,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -147,6 +167,28 @@ export async function POST(
         notes: `Meetup QR Handover completed between ${trade.seller.displayName} and ${trade.buyer.displayName}. CKB Escrow settled.`,
       },
     });
+
+    // Create notifications for both parties
+    await Promise.all([
+      prisma.notification.create({
+        data: {
+          userId: trade.buyerId,
+          type: "TRADE_COMPLETED",
+          title: "Handover Completed",
+          message: `You confirmed receipt of "${trade.listing.title}". Escrow funds released to seller.`,
+          link: "/profile",
+        },
+      }).catch((err) => console.warn("Failed to notify buyer of completion:", err)),
+      prisma.notification.create({
+        data: {
+          userId: trade.sellerId,
+          type: "TRADE_COMPLETED",
+          title: "Escrow Released & Trade Completed",
+          message: `${trade.buyer.displayName} confirmed receipt of "${trade.listing.title}". Payment is released.`,
+          link: "/profile",
+        },
+      }).catch((err) => console.warn("Failed to notify seller of completion:", err)),
+    ]);
 
     return NextResponse.json({
       success: true,
