@@ -2,6 +2,7 @@ import { ccc } from "@ckb-ccc/core";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { TradeMethod } from "@prisma/client";
+import { invalidateListingsCache } from "@/app/api/listings/route";
 
 // POST /api/trades - Initiate a trade (funds escrow)
 export async function POST(request: Request) {
@@ -117,6 +118,9 @@ export async function POST(request: Request) {
 
       return { updatedListing, trade };
     });
+
+    // Invalidate listings memory cache so marketplace immediately reflects RESERVED status
+    invalidateListingsCache();
 
     // Helper serialization since prisma doesn't natively serialize BigInt to JSON
     const responseData = {

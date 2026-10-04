@@ -56,6 +56,8 @@ export default function TradeRatingModal({
 
       if (res.ok) {
         setFeedback({ type: "success", text: t("reviewSuccess") });
+        window.dispatchEvent(new CustomEvent("toytrade:profileUpdated"));
+        window.dispatchEvent(new CustomEvent("toytrade:notification"));
         if (onSuccess) onSuccess();
         setTimeout(() => {
           onClose();

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { fiberClient } from "@/lib/fiber/fnnClient";
+import { invalidateListingsCache } from "@/app/api/listings/route";
 
 // POST /api/fiber/pay - Settle a Fiber invoice and finalize toy trade handover
 export async function POST(request: Request) {
@@ -71,6 +72,9 @@ export async function POST(request: Request) {
       where: { id: trade.listingId },
       data: { status: "TRADED" },
     });
+
+    // Invalidate listings cache so marketplace immediately removes/updates traded item
+    invalidateListingsCache();
 
     // Create immutable PassportLog for Spore DOB timeline
     await prisma.passportLog.create({

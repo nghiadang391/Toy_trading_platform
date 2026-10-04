@@ -25,8 +25,20 @@ export default function Navbar() {
       );
       if (res.ok) {
         const data = await res.json();
-        setNotifications(data.notifications || []);
-        setUnreadCount(data.unreadCount || 0);
+        const incomingList = data.notifications || [];
+        const incomingCount = data.unreadCount || 0;
+
+        setUnreadCount((prevCount) => {
+          if (incomingCount > prevCount) {
+            window.dispatchEvent(
+              new CustomEvent("toytrade:notification", {
+                detail: { notifications: incomingList, unreadCount: incomingCount },
+              })
+            );
+          }
+          return incomingCount;
+        });
+        setNotifications(incomingList);
       }
     } catch {
       // background polling
@@ -40,8 +52,32 @@ export default function Navbar() {
       return;
     }
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 10000);
-    return () => clearInterval(interval);
+
+    // 4-second polling for snappy notification alerts
+    const interval = setInterval(fetchNotifications, 4000);
+
+    const handleFocusOrVisible = () => {
+      if (document.visibilityState === "visible") {
+        fetchNotifications();
+      }
+    };
+
+    const handleTradeOrProfile = () => {
+      fetchNotifications();
+    };
+
+    window.addEventListener("focus", handleFocusOrVisible);
+    document.addEventListener("visibilitychange", handleFocusOrVisible);
+    window.addEventListener("toytrade:tradeUpdated", handleTradeOrProfile);
+    window.addEventListener("toytrade:profileUpdated", handleTradeOrProfile);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", handleFocusOrVisible);
+      document.removeEventListener("visibilitychange", handleFocusOrVisible);
+      window.removeEventListener("toytrade:tradeUpdated", handleTradeOrProfile);
+      window.removeEventListener("toytrade:profileUpdated", handleTradeOrProfile);
+    };
   }, [user]);
 
   const markAllRead = async () => {

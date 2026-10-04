@@ -147,7 +147,75 @@ export default function QrHandoverModal({
       }
     }
 
+    async function checkTradeStatus() {
+      if (!isOpen || !tradeId) return;
+      try {
+        const callerParam = user?.joyIdAddress ? `?callerAddress=${encodeURIComponent(user.joyIdAddress)}` : "";
+        const res = await fetch(`/api/trades/${tradeId}/qr${callerParam}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data) return;
+
+        if (data.status) {
+          setTradeStatus((prevStatus) => {
+            if (prevStatus !== data.status) {
+              if (data.status === "COMPLETED") {
+                setMessage(t("handoverSuccess"));
+                window.dispatchEvent(
+                  new CustomEvent("toytrade:tradeUpdated", {
+                    detail: { tradeId: data.tradeId || tradeId, status: "COMPLETED" },
+                  })
+                );
+                setTimeout(() => setShowRatingModal(true), 1500);
+                if (onSuccess) onSuccess();
+              } else if (data.status === "CANCEL_REQUESTED") {
+                setMessage(t("cancelRequestedNotice"));
+                if (user?.joyIdAddress && data.sellerAddress === user.joyIdAddress) {
+                  setActiveTab("SHOW_QR");
+                }
+                window.dispatchEvent(
+                  new CustomEvent("toytrade:tradeUpdated", {
+                    detail: { tradeId: data.tradeId || tradeId, status: "CANCEL_REQUESTED" },
+                  })
+                );
+              } else if (data.status === "CANCELLED") {
+                setMessage(t("tradeCancelledSuccess"));
+                window.dispatchEvent(
+                  new CustomEvent("toytrade:tradeUpdated", {
+                    detail: { tradeId: data.tradeId || tradeId, status: "CANCELLED" },
+                  })
+                );
+                if (onSuccess) {
+                  setTimeout(() => onSuccess(), 1500);
+                }
+              }
+            }
+            return data.status;
+          });
+        }
+
+        if (data.cancelReason) setCancelReason(data.cancelReason);
+        if (data.cancelRequestedBy) setCancelRequestedBy(data.cancelRequestedBy);
+
+        setTokenData((prev: any) => ({
+          ...prev,
+          ...data,
+        }));
+      } catch (err) {
+        console.warn("Handover status check error:", err);
+      }
+    }
+
     loadHandoverData();
+
+    // Active polling interval every 2s to detect counterparty release / cancel
+    const pollInterval = setInterval(() => {
+      checkTradeStatus();
+    }, 2000);
+
+    return () => {
+      clearInterval(pollInterval);
+    };
   }, [isOpen, tradeId, user?.joyIdAddress]);
 
   // Cancellation & Rejection handlers
@@ -175,6 +243,11 @@ export default function QrHandoverModal({
         setCancelRequestedBy("BUYER");
         setShowRejectForm(false);
         setMessage(t("cancelRequestedNotice"));
+        window.dispatchEvent(
+          new CustomEvent("toytrade:tradeUpdated", {
+            detail: { tradeId: actualTradeId, status: "CANCEL_REQUESTED" },
+          })
+        );
       } else {
         setError(data.error || "Failed to request cancellation");
       }
@@ -204,6 +277,11 @@ export default function QrHandoverModal({
       if (res.ok && data.success) {
         setTradeStatus("CANCELLED");
         setMessage(t("tradeCancelledSuccess"));
+        window.dispatchEvent(
+          new CustomEvent("toytrade:tradeUpdated", {
+            detail: { tradeId: actualTradeId, status: "CANCELLED" },
+          })
+        );
         if (onSuccess) {
           setTimeout(() => onSuccess(), 1500);
         }
@@ -335,6 +413,11 @@ export default function QrHandoverModal({
         if (res.ok && data.success) {
           setMessage(t("handoverSuccess"));
           setTradeStatus("COMPLETED");
+          window.dispatchEvent(
+            new CustomEvent("toytrade:tradeUpdated", {
+              detail: { tradeId, status: "COMPLETED" },
+            })
+          );
           setTimeout(() => setShowRatingModal(true), 1200);
           if (onSuccess) onSuccess();
         } else {
@@ -355,6 +438,11 @@ export default function QrHandoverModal({
         if (res.ok) {
           setMessage(data.message || t("handoverSuccess"));
           setTradeStatus("COMPLETED");
+          window.dispatchEvent(
+            new CustomEvent("toytrade:tradeUpdated", {
+              detail: { tradeId, status: "COMPLETED" },
+            })
+          );
           setTimeout(() => setShowRatingModal(true), 1200);
           if (onSuccess) onSuccess();
         } else {
@@ -470,6 +558,52 @@ export default function QrHandoverModal({
             <div className="error-container">
               <div className="alert error">{error}</div>
               <p className="hint mt-3">{t("noActiveTradeFound")}</p>
+            </div>
+          ) : tradeStatus === "COMPLETED" ? (
+            <div className="p-6 flex flex-col items-center text-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-[#00ff87]/20 border border-[#00ff87]/40 flex items-center justify-center text-3xl text-[#00ff87] animate-bounce">
+                ✓
+              </div>
+              <div className="space-y-1">
+                <span className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-[#00ff87]/10 text-[#00ff87] border border-[#00ff87]/30">
+                  {t("statusLabel") || "Status"}: COMPLETED
+                </span>
+                <h3 className="text-xl font-bold text-white mt-2">
+                  {t("handoverCompleteTitle") || "Trade Completed & Escrow Released!"}
+                </h3>
+                <p className="text-xs text-white/70 max-w-sm mx-auto leading-relaxed">
+                  {user?.joyIdAddress && tokenData?.sellerAddress && user.joyIdAddress === tokenData.sellerAddress
+                    ? t("handoverSuccessSeller") || "Escrow funds have been successfully released to your CKB wallet."
+                    : t("handoverSuccess") || "Handover verified! Escrow released to seller and Toy Passport transferred to your collection."}
+                </p>
+              </div>
+
+              {tokenData?.toyTitle && (
+                <div className="w-full max-w-xs p-3 rounded-xl bg-white/5 border border-white/10 text-xs flex justify-between items-center">
+                  <span className="text-white/50">{t("toyLabel") || "Toy"}:</span>
+                  <span className="text-white font-semibold truncate max-w-[180px]">{tokenData.toyTitle}</span>
+                </div>
+              )}
+
+              <div className="w-full max-w-xs pt-2 flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowRatingModal(true)}
+                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 text-black font-bold text-xs hover:opacity-90 transition-opacity flex items-center justify-center gap-1.5 shadow-lg shadow-amber-500/10 cursor-pointer"
+                >
+                  <span>⭐</span> {t("rateCounterparty") || "Rate & Review Counterparty"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    if (onSuccess) onSuccess();
+                  }}
+                  className="w-full py-2 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white/80 font-medium text-xs transition-colors cursor-pointer"
+                >
+                  {t("doneBtn") || "Close"}
+                </button>
+              </div>
             </div>
           ) : activeTab === "SHOW_QR" ? (
             <div className="qr-container">

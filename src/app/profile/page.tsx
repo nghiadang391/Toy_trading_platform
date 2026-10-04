@@ -49,30 +49,75 @@ function ProfileContent() {
       (user.id === profile.id || user.joyIdAddress === profile.joyIdAddress)
   );
 
-  async function fetchProfile(idToFetch: string) {
+  async function fetchProfile(idToFetch: string, isSilent = false) {
     try {
-      setLoading(true);
+      if (!isSilent) {
+        setLoading(true);
+      }
       setError(null);
       const res = await fetch(`/api/users/${encodeURIComponent(idToFetch)}`);
       const data = await res.json();
       if (res.ok) {
         setProfile(data);
       } else {
-        setError(data.error || "User profile not found");
+        if (!isSilent) {
+          setError(data.error || "User profile not found");
+        }
       }
     } catch (err: any) {
-      setError("Failed to load user profile");
+      if (!isSilent) {
+        setError("Failed to load user profile");
+      }
     } finally {
-      setLoading(false);
+      if (!isSilent) {
+        setLoading(false);
+      }
     }
   }
 
+  // Initial fetch on mount / user change
   useEffect(() => {
     if (activeUserId) {
       fetchProfile(activeUserId);
     } else {
       setLoading(false);
     }
+  }, [activeUserId]);
+
+  // Real-time background sync: periodic polling (8s), window focus/visibility, and live custom events
+  useEffect(() => {
+    if (!activeUserId) return;
+
+    const interval = setInterval(() => {
+      fetchProfile(activeUserId, true);
+    }, 8000);
+
+    const handleFocusOrVisible = () => {
+      if (document.visibilityState === "visible") {
+        fetchProfile(activeUserId, true);
+      }
+    };
+
+    const handleLiveEvents = () => {
+      fetchProfile(activeUserId, true);
+    };
+
+    window.addEventListener("focus", handleFocusOrVisible);
+    document.addEventListener("visibilitychange", handleFocusOrVisible);
+    window.addEventListener("toytrade:tradeUpdated", handleLiveEvents);
+    window.addEventListener("toytrade:profileUpdated", handleLiveEvents);
+    window.addEventListener("toytrade:notification", handleLiveEvents);
+    window.addEventListener("toytrade:listingUpdated", handleLiveEvents);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", handleFocusOrVisible);
+      document.removeEventListener("visibilitychange", handleFocusOrVisible);
+      window.removeEventListener("toytrade:tradeUpdated", handleLiveEvents);
+      window.removeEventListener("toytrade:profileUpdated", handleLiveEvents);
+      window.removeEventListener("toytrade:notification", handleLiveEvents);
+      window.removeEventListener("toytrade:listingUpdated", handleLiveEvents);
+    };
   }, [activeUserId]);
 
   const copyAddress = () => {

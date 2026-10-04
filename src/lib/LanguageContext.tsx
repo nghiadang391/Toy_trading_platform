@@ -114,6 +114,12 @@ const translations: Record<Language, Record<string, string>> = {
     disputeBtn: "Dispute Rejection",
     tradeCancelledSuccess: "Trade cancelled. Escrow refunded to buyer and listing restored to Active.",
     tradeDisputedNotice: "Trade marked as disputed. Please negotiate via chat or contact support.",
+    handoverCompleteTitle: "Trade Completed & Escrow Released!",
+    handoverSuccessSeller: "Escrow funds have been successfully released to your CKB wallet.",
+    rateCounterparty: "Rate & Review Counterparty",
+    statusLabel: "Status",
+    toyLabel: "Toy",
+    doneBtn: "Close",
 
     // Sell Form
     sellTitle: "Sell a Toy",
@@ -305,6 +311,12 @@ const translations: Record<Language, Record<string, string>> = {
     disputeBtn: "Khiếu nại yêu cầu huỷ",
     tradeCancelledSuccess: "Giao dịch đã huỷ thành công. Tiền đã hoàn về ví người mua và bài đăng đã mở lại.",
     tradeDisputedNotice: "Giao dịch đã được ghi nhận khiếu nại. Vui lòng trao đổi qua tin nhắn hoặc liên hệ hỗ trợ.",
+    handoverCompleteTitle: "Giao dịch Hoàn tất & Tiền đã Giải ngân!",
+    handoverSuccessSeller: "Tiền bảo chứng đã được chuyển thành công vào ví CKB của bạn.",
+    rateCounterparty: "Đánh giá người giao dịch",
+    statusLabel: "Trạng thái",
+    toyLabel: "Món đồ chơi",
+    doneBtn: "Đóng",
 
     // Sell Form
     sellTitle: "Đăng bán đồ chơi",
