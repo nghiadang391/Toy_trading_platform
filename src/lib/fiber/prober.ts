@@ -101,6 +101,16 @@ export function parseFiberError(rawError: string): { code: string; suggestion: s
 export async function runPreflightProbe(invoice: string): Promise<ProbeResult> {
   const start = Date.now();
 
+  if (process.env.FIBER_SIMULATE_FALLBACK === "true") {
+    return {
+      viable: false,
+      classification: "ROUTE_BLOCKED",
+      suggestion: "Fiber payment route is simulated as blocked. Switched to CKB L1 Escrow.",
+      errorMessage: "Simulated route blockage via FIBER_SIMULATE_FALLBACK",
+      latencyMs: Date.now() - start,
+    };
+  }
+
   // In offline dev mode or mock invoices, treat as viable
   if (invoice.startsWith("fbr_mock_") || process.env.NODE_ENV !== "production") {
     return {

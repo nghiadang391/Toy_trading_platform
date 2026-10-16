@@ -87,6 +87,13 @@ export class FiberClient {
    * Check if the Fiber Node is reachable and responsive
    */
   async checkHealth(): Promise<FiberHealthStatus> {
+    if (process.env.FIBER_SIMULATE_FALLBACK === "true") {
+      return {
+        isAvailable: false,
+        reason: "Simulated offline Fiber node (FIBER_SIMULATE_FALLBACK=true)",
+      };
+    }
+
     const startTime = Date.now();
     try {
       const nodeInfo = await this.callRpc<FnnNodeInfo>("node_info", []);
@@ -112,6 +119,10 @@ export class FiberClient {
     amountShannons: string,
     description: string
   ): Promise<FnnInvoiceResult> {
+    if (process.env.FIBER_SIMULATE_FALLBACK === "true") {
+      throw new Error("NoRouteFound: Simulated Fiber payment route failure");
+    }
+
     // In dev mode, if FNN is not running, provide a structured mock invoice
     try {
       const health = await this.checkHealth();

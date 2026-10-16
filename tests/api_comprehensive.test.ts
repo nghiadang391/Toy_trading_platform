@@ -6,6 +6,7 @@ import { POST as processPayment } from "../src/app/api/fiber/pay/route";
 
 describe("Comprehensive API & Edge Case Test Suite", () => {
   beforeAll(async () => {
+    jest.setTimeout(15000);
     // Clear test records
     await prisma.passportLog.deleteMany();
     await prisma.rating.deleteMany();

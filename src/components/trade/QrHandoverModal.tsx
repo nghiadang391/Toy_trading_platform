@@ -24,6 +24,7 @@ export default function QrHandoverModal({
   const [activeTab, setActiveTab] = useState<"SHOW_QR" | "SCAN_QR">("SHOW_QR");
   const [paymentMode, setPaymentMode] = useState<"FIBER" | "CKB_L1">("FIBER");
   const [isFallbackActive, setIsFallbackActive] = useState(false);
+  const [fiberPaymentFailed, setFiberPaymentFailed] = useState(false);
 
   // Review & Rating Modal states
   const [showRatingModal, setShowRatingModal] = useState(false);
@@ -51,6 +52,49 @@ export default function QrHandoverModal({
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [scanSuccessBadge, setScanSuccessBadge] = useState(false);
   const scannerRef = useRef<any>(null);
+
+  // Load L1 Escrow Handover Token from API
+  async function loadL1Token() {
+    try {
+      const callerParam = user?.joyIdAddress ? `?callerAddress=${encodeURIComponent(user.joyIdAddress)}` : "";
+      const res = await fetch(`/api/trades/${tradeId}/qr${callerParam}`);
+      const data = await res.json();
+      if (res.ok) {
+        setTokenData(data);
+        if (data.status) setTradeStatus(data.status);
+        if (data.cancelReason) setCancelReason(data.cancelReason);
+        if (data.cancelRequestedBy) setCancelRequestedBy(data.cancelRequestedBy);
+
+        // If cancellation requested, switch seller to SHOW_QR to review request
+        if (data.status === "CANCEL_REQUESTED") {
+          if (user?.joyIdAddress && data.sellerAddress === user.joyIdAddress) {
+            setActiveTab("SHOW_QR");
+          }
+        } else {
+          // Default tabs by role
+          if (user?.joyIdAddress && data.buyerAddress === user.joyIdAddress) {
+            setActiveTab("SCAN_QR");
+          } else if (user?.joyIdAddress && data.sellerAddress === user.joyIdAddress) {
+            setActiveTab("SHOW_QR");
+          }
+        }
+      } else {
+        setError(data.error || t("noActiveTradeFound"));
+      }
+    } catch (err: any) {
+      console.error("Failed to load L1 token:", err);
+      setError(t("noActiveTradeFound"));
+    }
+  }
+
+  // Gracefully transition from Fiber (L2) to Standard CKB L1 Escrow
+  const switchToL1Fallback = async () => {
+    setIsFallbackActive(true);
+    setPaymentMode("CKB_L1");
+    setError(null);
+    setFiberPaymentFailed(false);
+    await loadL1Token();
+  };
 
   // Stop camera helper
   const stopCamera = async () => {
@@ -85,6 +129,7 @@ export default function QrHandoverModal({
     setCameraError(null);
     setScanSuccessBadge(false);
     setIsFallbackActive(false);
+    setFiberPaymentFailed(false);
     setPaymentMode("FIBER");
 
     // Primary: Attempt Instant Handover via Fiber
@@ -111,39 +156,6 @@ export default function QrHandoverModal({
         setIsFallbackActive(true);
         setPaymentMode("CKB_L1");
         await loadL1Token();
-      }
-    }
-
-    async function loadL1Token() {
-      try {
-        const callerParam = user?.joyIdAddress ? `?callerAddress=${encodeURIComponent(user.joyIdAddress)}` : "";
-        const res = await fetch(`/api/trades/${tradeId}/qr${callerParam}`);
-        const data = await res.json();
-        if (res.ok) {
-          setTokenData(data);
-          if (data.status) setTradeStatus(data.status);
-          if (data.cancelReason) setCancelReason(data.cancelReason);
-          if (data.cancelRequestedBy) setCancelRequestedBy(data.cancelRequestedBy);
-
-          // If cancellation requested, switch seller to SHOW_QR to review request
-          if (data.status === "CANCEL_REQUESTED") {
-            if (user?.joyIdAddress && data.sellerAddress === user.joyIdAddress) {
-              setActiveTab("SHOW_QR");
-            }
-          } else {
-            // Default tabs by role
-            if (user?.joyIdAddress && data.buyerAddress === user.joyIdAddress) {
-              setActiveTab("SCAN_QR");
-            } else if (user?.joyIdAddress && data.sellerAddress === user.joyIdAddress) {
-              setActiveTab("SHOW_QR");
-            }
-          }
-        } else {
-          setError(data.error || t("noActiveTradeFound"));
-        }
-      } catch (err: any) {
-        console.error("Failed to load L1 token:", err);
-        setError(t("noActiveTradeFound"));
       }
     }
 
@@ -422,6 +434,7 @@ export default function QrHandoverModal({
           if (onSuccess) onSuccess();
         } else {
           setError(data.error || "Fiber payment verification failed");
+          setFiberPaymentFailed(true);
         }
       } else {
         // Settle standard L1 token - Buyer submits confirmation releasing escrow
@@ -473,6 +486,16 @@ export default function QrHandoverModal({
             <span className={`engine-badge ${paymentMode === "FIBER" ? "fiber" : "ckb"}`}>
               {paymentMode === "FIBER" ? t("instantHandover") : t("standardHandover")}
             </span>
+            {paymentMode === "FIBER" && tradeStatus !== "COMPLETED" && tradeStatus !== "CANCELLED" && (
+              <button
+                type="button"
+                onClick={switchToL1Fallback}
+                className="px-2.5 py-1 text-[11px] font-semibold text-white/70 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                title={t("switchToL1Btn")}
+              >
+                <span>🔒</span> {t("switchToL1Btn")}
+              </button>
+            )}
           </div>
           <button className="close-btn" onClick={onClose}>
             &times;
@@ -483,6 +506,22 @@ export default function QrHandoverModal({
           <div className="alert warning fallback-alert">
             <span className="fallback-icon">⚡→🔒</span>
             <span>{t("switchingToFallback")}</span>
+          </div>
+        )}
+
+        {fiberPaymentFailed && paymentMode === "FIBER" && (
+          <div className="mx-6 mt-3 p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/10 space-y-2">
+            <div className="text-amber-300 font-bold text-xs flex items-center gap-1.5">
+              <span>⚠️</span>
+              <span>{t("fiberFailedPrompt")}</span>
+            </div>
+            <button
+              type="button"
+              onClick={switchToL1Fallback}
+              className="w-full py-2 px-3 rounded-lg bg-gradient-to-r from-amber-400 to-amber-500 text-black font-bold text-xs hover:opacity-90 transition-opacity cursor-pointer shadow-md"
+            >
+              🔒 {t("switchToL1Btn")}
+            </button>
           </div>
         )}
 
@@ -776,7 +815,20 @@ export default function QrHandoverModal({
                 />
               </div>
 
-              {error && <div className="alert error">{error}</div>}
+              {error && (
+                <div className="alert error">
+                  <p>{error}</p>
+                  {paymentMode === "FIBER" && (
+                    <button
+                      type="button"
+                      onClick={switchToL1Fallback}
+                      className="mt-2 w-full py-1.5 px-3 rounded-lg bg-amber-400 hover:bg-amber-300 text-black font-bold text-xs transition-colors cursor-pointer shadow-sm"
+                    >
+                      🔒 {t("switchToL1Btn")}
+                    </button>
+                  )}
+                </div>
+              )}
               {message && <div className="alert success">{message}</div>}
 
               {/* Pre-Settlement Confirmation Modal */}
