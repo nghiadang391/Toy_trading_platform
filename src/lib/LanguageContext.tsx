@@ -120,6 +120,9 @@ const translations: Record<Language, Record<string, string>> = {
     statusLabel: "Status",
     toyLabel: "Toy",
     doneBtn: "Close",
+    switchToL1Btn: "Use Standard L1 Escrow",
+    fiberFailedPrompt: "Fiber instant payment could not be completed. You can safely switch to Standard CKB L1 Escrow.",
+    retryFiber: "Retry Fiber",
 
     // Sell Form
     sellTitle: "Sell a Toy",
@@ -317,6 +320,9 @@ const translations: Record<Language, Record<string, string>> = {
     statusLabel: "Trạng thái",
     toyLabel: "Món đồ chơi",
     doneBtn: "Đóng",
+    switchToL1Btn: "Dùng Bảo chứng CKB L1",
+    fiberFailedPrompt: "Thanh toán tức thì qua Fiber không thành công. Bạn có thể chuyển sang Bảo chứng CKB L1 an toàn.",
+    retryFiber: "Thử lại Fiber",
 
     // Sell Form
     sellTitle: "Đăng bán đồ chơi",

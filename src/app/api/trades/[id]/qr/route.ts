@@ -152,11 +152,48 @@ export async function POST(
       },
     });
 
-    // Mark listing as traded
-    await prisma.listing.update({
-      where: { id: trade.listingId },
-      data: { status: "TRADED" },
-    });
+    // Mint or Transfer Spore DOB on-chain
+    let sporeDobId = trade.listing.sporeDobId;
+    let sporeTxHash = trade.listing.sporeTxHash;
+
+    const { executeMintToyPassport, executeTransferToyPassport } = await import("@/lib/ckb/spore");
+
+    if (!sporeDobId) {
+      // First-time purchase: Mint Spore DOB cell to buyer's address
+      const mintResult = await executeMintToyPassport(trade.buyer.joyIdAddress, {
+        name: trade.listing.title,
+        condition: trade.listing.condition,
+        category: trade.listing.category,
+        listedAt: trade.listing.createdAt.toISOString(),
+        region: trade.listing.shippingRegion || "UK",
+        imageHash: trade.listing.imageSearchHash || "0x0",
+      });
+      sporeDobId = mintResult.sporeDobId;
+      sporeTxHash = mintResult.txHash;
+      await prisma.listing.update({
+        where: { id: trade.listingId },
+        data: {
+          status: "TRADED",
+          sporeDobId,
+          sporeTxHash,
+        },
+      });
+    } else {
+      // Resale: Transfer existing Spore DOB cell from seller to buyer
+      const transferResult = await executeTransferToyPassport(
+        sporeDobId,
+        trade.seller.joyIdAddress,
+        trade.buyer.joyIdAddress
+      );
+      sporeTxHash = transferResult.txHash;
+      await prisma.listing.update({
+        where: { id: trade.listingId },
+        data: {
+          status: "TRADED",
+          sporeTxHash,
+        },
+      });
+    }
 
     // Invalidate listings cache so marketplace immediately removes/updates traded item
     invalidateListingsCache();
@@ -168,7 +205,7 @@ export async function POST(
         tradeId: trade.id,
         ownerAddress: trade.buyer.joyIdAddress,
         condition: trade.listing.condition,
-        notes: `Meetup QR Handover completed between ${trade.seller.displayName} and ${trade.buyer.displayName}. CKB Escrow settled.`,
+        notes: `Meetup QR Handover completed between ${trade.seller.displayName} and ${trade.buyer.displayName}. Spore DOB (${sporeDobId}) settled on CKB (tx: ${sporeTxHash?.slice(0, 18)}...).`,
       },
     });
 

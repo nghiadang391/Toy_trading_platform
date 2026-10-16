@@ -5,8 +5,23 @@ import { fiberClient } from "@/lib/fiber/fnnClient";
 // POST /api/fiber/invoice - Generate instant Fiber payment invoice for a trade
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { tradeId: paramId } = body;
+    const body = await request.json().catch(() => ({}));
+    const { tradeId: paramId, simulateFallback } = body;
+
+    const { searchParams } = new URL(request.url);
+    const shouldFallback =
+      simulateFallback === true ||
+      searchParams.get("simulateFallback") === "true" ||
+      process.env.FIBER_SIMULATE_FALLBACK === "true";
+
+    if (shouldFallback) {
+      return NextResponse.json({
+        success: false,
+        useFallback: true,
+        fallbackReason: "Simulated route blockage: Switched to Standard CKB L1 Escrow.",
+        paymentEngine: "CKB_L1",
+      });
+    }
 
     if (!paramId) {
       return NextResponse.json({ error: "tradeId is required" }, { status: 400 });

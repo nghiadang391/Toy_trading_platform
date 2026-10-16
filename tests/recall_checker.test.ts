@@ -23,6 +23,39 @@ describe("Two-Tier Safety Recall Engine Tests", () => {
     expect(res.recallReason).toBeNull();
   });
 
+  let originalFetch: any;
+
+  beforeAll(() => {
+    originalFetch = global.fetch;
+    global.fetch = jest.fn(async (url: any, init?: any) => {
+      const urlStr = url.toString();
+      if (urlStr.includes("saferproducts.gov")) {
+        if (urlStr.includes("Brunch")) {
+          return {
+            ok: true,
+            json: async () => [
+              {
+                Title: "Fisher-Price Recalls Brunch & Go Stroller Toys Due to Choking Hazard",
+                URL: "https://www.cpsc.gov/Recalls/2024/Fisher-Price-Recalls-Brunch-and-Go-Stroller-Toys",
+                Hazards: [{ Name: "Choking Hazard" }],
+                Products: [{ Name: "Fisher-Price Brunch & Go Stroller", Model: "" }],
+              },
+            ],
+          } as any;
+        }
+        return {
+          ok: true,
+          json: async () => [],
+        } as any;
+      }
+      return originalFetch(url, init);
+    }) as any;
+  });
+
+  afterAll(() => {
+    global.fetch = originalFetch;
+  });
+
   test("[UT-REC-003] Tier 2: Asynchronous check queries CPSC and detects live recalled toy", async () => {
     const res = await checkToySafetyAsync("Fisher-Price Brunch & Go Stroller");
     expect(res.isRecalled).toBe(true);

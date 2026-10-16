@@ -1,6 +1,7 @@
 import { fiberClient } from "../src/lib/fiber/fnnClient";
 import { prisma } from "../src/lib/prisma";
 import { POST as settleFiberPayment } from "../src/app/api/fiber/pay/route";
+import { POST as generateFiberInvoice } from "../src/app/api/fiber/invoice/route";
 
 describe("Fiber Network (L2) Integration Tests", () => {
   afterAll(async () => {
@@ -114,5 +115,83 @@ describe("Fiber Network (L2) Integration Tests", () => {
     await prisma.user.deleteMany({
       where: { id: { in: [testSeller.id, testBuyer.id, testIntruder.id] } },
     });
+  });
+
+  test("[IT-PAY-006] Should trigger L1 fallback when Fiber simulateFallback is requested", async () => {
+    const testSeller = await prisma.user.create({
+      data: { joyIdAddress: `ckt1_fbr_fb_seller_${Date.now()}`, displayName: "Fallback Seller" },
+    });
+    const testBuyer = await prisma.user.create({
+      data: { joyIdAddress: `ckt1_fbr_fb_buyer_${Date.now()}`, displayName: "Fallback Buyer" },
+    });
+    const testListing = await prisma.listing.create({
+      data: {
+        title: "Fallback Test Toy",
+        description: "Test fallback description",
+        priceFiat: 30,
+        currency: "GBP",
+        condition: "LIKE_NEW",
+        category: "ACTION_FIGURES",
+        sellerId: testSeller.id,
+        status: "RESERVED",
+        imageUrls: JSON.stringify(["https://example.com/fallback.jpg"]),
+        tradeMethod: "MEETUP",
+      },
+    });
+    const testTrade = await prisma.trade.create({
+      data: {
+        listingId: testListing.id,
+        sellerId: testSeller.id,
+        buyerId: testBuyer.id,
+        priceFiat: 30,
+        priceCkb: BigInt("3000000000"),
+        exchangeRate: 0.02,
+        method: "MEETUP",
+        status: "ESCROW_FUNDED",
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+    });
+
+    const fallbackReq = new Request("http://localhost:3000/api/fiber/invoice", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        tradeId: testTrade.id,
+        simulateFallback: true,
+      }),
+    });
+
+    const res = await generateFiberInvoice(fallbackReq);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.success).toBe(false);
+    expect(data.useFallback).toBe(true);
+    expect(data.paymentEngine).toBe("CKB_L1");
+    expect(data.fallbackReason).toBeDefined();
+
+    // Clean up
+    await prisma.trade.delete({ where: { id: testTrade.id } });
+    await prisma.listing.delete({ where: { id: testListing.id } });
+    await prisma.user.deleteMany({
+      where: { id: { in: [testSeller.id, testBuyer.id] } },
+    });
+  });
+
+  test("[IT-PAY-007] Should report offline health and block route when FIBER_SIMULATE_FALLBACK is active", async () => {
+    const { runPreflightProbe } = await import("../src/lib/fiber/prober");
+
+    process.env.FIBER_SIMULATE_FALLBACK = "true";
+    try {
+      const health = await fiberClient.checkHealth();
+      expect(health.isAvailable).toBe(false);
+      expect(health.reason).toContain("FIBER_SIMULATE_FALLBACK");
+
+      const probe = await runPreflightProbe("fbr_mock_probe_target");
+      expect(probe.viable).toBe(false);
+      expect(probe.classification).toBe("ROUTE_BLOCKED");
+      expect(probe.suggestion).toContain("CKB L1 Escrow");
+    } finally {
+      delete process.env.FIBER_SIMULATE_FALLBACK;
+    }
   });
 });
